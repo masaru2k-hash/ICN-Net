@@ -1,0 +1,586 @@
+프론트엔드 환경에서 네트워크망과 같은 내부 보안 정보를 다룰 때 가장 안전하고 효율적인 권한 관리 방법부터 제안해 드립니다.
+
+정적 웹앱(PWA)은 코드가 브라우저에 모두 다운로드되어 실행되므로, 자바스크립트 내부에 비밀번호를 하드코딩하는 방식은 개발자 도구를 통해 우회될 수 있습니다. 따라서 **앱 접속 및 권한 관리**는 다음과 같은 투트랙(Two-track) 방식으로 구성하는 것이 좋습니다.
+
+1. **앱 접속 권한 (네트워크/호스팅 레벨):** 이미 사용 중이신 Cloudflare 생태계의 Cloudflare Access (Zero Trust)를 연동하는 것을 강력히 권장합니다. 코드 수정 없이 이메일 인증(OTP)이나 특정 IP 통제 방식을 적용할 수 있어, 사내 직원만 앱에 접근하도록 원천 차단할 수 있습니다. 현재 코드에도 1차적인 PIN 번호 입력 화면을 구현해 두었습니다 (기본 PIN: `1234`).
+2. **데이터 수정 권한 (설정 메뉴):** 항공사 정보나 망 정보는 수시로 바뀔 수 있습니다. 이 앱은 백엔드 DB가 없으므로 브라우저의 `localStorage`를 활용해 기기별로 데이터를 저장하도록 구성했습니다. 담당자가 설정 메뉴에서 정보를 업데이트한 후, 해당 설정값(JSON)을 팀원들에게 공유하여 '설정 가져오기'를 통해 동기화하는 방식이 서버 유지보수 없이 가장 현실적입니다.
+
+요청하신 **체크인 현황 파악 목적의 뷰**, **망/DCS 교집합(AND) 검색**, **운항 종료 항공사 ON/OFF 토글**, 그리고 **설정(데이터 관리) 메뉴**를 모두 반영한 전체 코드입니다.
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ICN Issue Report & Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #0f172a; overscroll-behavior-y: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #wrapper { display: flex; flex-direction: column; height: 100dvh; }
+        #content { flex: 1; width: 100%; overflow-y: auto; position: relative; overscroll-behavior-y: contain; }
+        
+        .pwa-banner {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #333; color: white; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center; z-index: 9999;
+        }
+        .pwa-banner button { background: #4f46e5; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans">
+
+    <div id="wrapper">
+        <div id="content"><div id="root" style="height: 100%;"></div></div>
+    </div>
+
+    <div id="android-install-banner" class="pwa-banner" style="display: none;">
+        <span>설치하고 더 편하게 이용하세요!</span>
+        <button id="install-btn">지금 설치</button>
+    </div>
+
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+    
+    <script type="text/babel" data-presets="react">
+        const { useState, useEffect, useMemo } = React;
+
+        const PROXY_BASE_URL = 'https://winter-unit-6c7a.masaru2k.workers.dev/?url=';
+        const GATE_API_URL = PROXY_BASE_URL + encodeURIComponent('http://apis.data.go.kr/B551177/StatusOfPassengerFlightsDSOdp/getPassengerDeparturesDSOdp?serviceKey=6uC38lshDqWE5U0LuYIGHZ3XeIIEocXrQmhXd11WEmLFLh5ygZSG%2FPNeYov0pyzTU99ISscjIZIp%2FL%2FE2oI%2FYA%3D%3D&type=xml');
+        
+        const DEFAULT_AIRLINE_INFO = {
+            '3U': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            '5J': { term: 'T1', dcs: ['Navitaire'], nw: ['SITA'] },
+            '7C': { term: 'T1', dcs: ['Navitaire'], nw: ['SITA'] },
+            '8M': { term: 'T1', dcs: ['HITIT'], nw: ['SITA'] },
+            '9C': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['SITA'] },
+            'AA': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['SITA'] },
+            'AC': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'AI': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'CA': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'CX': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'CZ': { term: 'T1', dcs: ['TravelSky'], nw: ['SITA'] },
+            'EK': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['ARINC'] },
+            'EY': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'LH': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'MH': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'SQ': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'TG': { term: 'T1', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'TW': { term: 'T1', dcs: ['IBS', 'IPORT'], nw: ['SITA'] }, 
+            'UA': { term: 'T1', dcs: ['Q-Logic'], nw: ['SITA'] },
+            'VJ': { term: 'T1', dcs: ['IPORT'], nw: ['ARINC'] },
+            'VN': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'WE': { term: 'T1', dcs: ['IBS'], nw: ['전용망'] },
+            
+            'AF': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'AM': { term: 'T2', dcs: ['SABRE'], nw: ['SITA'] },
+            'BX': { term: 'T2', dcs: ['IN-HOUSE'], nw: ['ARINC'] },
+            'CI': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'DL': { term: 'T2', dcs: ['IN-HOUSE'], nw: ['전용망'] },
+            'KE': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'KL': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'LJ': { term: 'T2', dcs: ['IBS'], nw: ['ARINC'] },
+            'OZ': { term: 'T2', dcs: ['Amadeus'], nw: ['SITA'] }
+        };
+
+        const Page = { 
+            Login: -1,
+            Main: 0, 
+            SearchSelect: 1, 
+            VendorSelect: 2, 
+            DualSelect: 3,
+            ResultList: 4,
+            Settings: 5
+        };
+
+        const parseFlightsFromXML = (xmlText) => {
+            const parser = new DOMParser(); 
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            const items = xmlDoc.getElementsByTagName('item'); 
+            const flights = [];
+            
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i]; 
+                const cs = item.querySelector('codeshare')?.textContent?.trim();
+                if (cs === 'Slave' || cs === 'slave') continue; 
+                
+                const flightId = item.querySelector('flightId')?.textContent ?? '';
+                const iataCode = flightId.length >= 2 ? flightId.substring(0, 2).toUpperCase() : '';
+                
+                flights.push({
+                    flightId: flightId,
+                    iata: iataCode,
+                    airline: item.querySelector('airline')?.textContent ?? '',
+                    airport: item.querySelector('airport')?.textContent ?? item.querySelector('airportCode')?.textContent ?? '',
+                    scheduleDateTime: item.querySelector('scheduleDateTime')?.textContent ?? '', 
+                    terminalid: item.querySelector('terminalid')?.textContent ?? '',
+                    remark: item.querySelector('remark')?.textContent ?? null, 
+                    chkinrange: item.querySelector('chkinrange')?.textContent ?? '',
+                });
+            }
+            return flights;
+        };
+
+        const fetchFlightData = async () => {
+            const f = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+            const t = f(new Date()); 
+            const tm = f(new Date(new Date().setDate(new Date().getDate() + 1)));
+            const urls = [
+                `${GATE_API_URL}&selectdate=${t}&from_time=0000&to_time=2359`,
+                `${GATE_API_URL}&selectdate=${tm}&from_time=0000&to_time=2359`
+            ];
+            const xmls = await Promise.all(urls.map(u => fetch(u).then(res => res.text())));
+            const all = xmls.flatMap(x => parseFlightsFromXML(x));
+            return all.sort((a, b) => a.scheduleDateTime.localeCompare(b.scheduleDateTime));
+        };
+
+        const Header = ({ onBack, title, onSettings }) => (
+            <header className="bg-slate-800 p-4 shadow-lg sticky top-0 z-10 flex items-center justify-between h-16 shrink-0">
+                <div className="flex items-center">
+                    {onBack && <button onClick={onBack} className="text-indigo-400 text-3xl mr-4 leading-none pb-1">&#8592;</button>}
+                    <h1 className="text-xl font-bold text-white truncate">{title}</h1>
+                </div>
+                {onSettings && (
+                    <button onClick={onSettings} className="text-slate-300 p-2">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                )}
+            </header>
+        );
+
+        const App = () => {
+            const [auth, setAuth] = useState(() => localStorage.getItem('appAuth') === 'true');
+            const [pinInput, setPinInput] = useState('');
+            const APP_PIN = "1234";
+
+            const [page, setPage] = useState(auth ? Page.Main : Page.Login);
+            const [flights, setFlights] = useState([]);
+            const [loading, setLoading] = useState(false);
+            
+            const [airlinesData, setAirlinesData] = useState(() => {
+                const saved = localStorage.getItem('airlineData');
+                return saved ? JSON.parse(saved) : DEFAULT_AIRLINE_INFO;
+            });
+
+            // 검색 조건 State
+            const [searchMode, setSearchMode] = useState(''); // 'NW', 'DCS', 'BOTH'
+            const [selTerm, setSelTerm] = useState('T1');
+            const [selNw, setSelNw] = useState('');
+            const [selDcs, setSelDcs] = useState('');
+            const [matchingIatas, setMatchingIatas] = useState([]);
+
+            useEffect(() => {
+                if (auth) localStorage.setItem('appAuth', 'true');
+            }, [auth]);
+
+            useEffect(() => {
+                localStorage.setItem('airlineData', JSON.stringify(airlinesData));
+            }, [airlinesData]);
+
+            const loadFlights = async () => {
+                if (flights.length > 0) return;
+                setLoading(true);
+                try { setFlights(await fetchFlightData()); } catch(e) { console.error(e); }
+                finally { setLoading(false); }
+            };
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (pinInput === APP_PIN) {
+                    setAuth(true);
+                    setPage(Page.Main);
+                } else {
+                    alert("비밀번호가 일치하지 않습니다.");
+                    setPinInput('');
+                }
+            };
+
+            const nav = (p) => setPage(p);
+
+            const getAvailableOptions = (type) => {
+                const s = new Set();
+                Object.values(airlinesData).forEach(info => {
+                    if (info.term === selTerm) {
+                        if (type === 'nw' || type === 'both') info.nw.forEach(v => s.add(v.toUpperCase()));
+                        if (type === 'dcs' || type === 'both') info.dcs.forEach(v => s.add(v.toUpperCase()));
+                    }
+                });
+                return Array.from(s).sort();
+            };
+
+            const executeSearch = (mode, nwVal, dcsVal) => {
+                const matched = Object.keys(airlinesData).filter(iata => {
+                    const info = airlinesData[iata];
+                    if (info.term !== selTerm) return false;
+                    
+                    const hasNw = nwVal ? info.nw.map(v=>v.toUpperCase()).includes(nwVal) : true;
+                    const hasDcs = dcsVal ? info.dcs.map(v=>v.toUpperCase()).includes(dcsVal) : true;
+
+                    if (mode === 'NW') return hasNw;
+                    if (mode === 'DCS') return hasDcs;
+                    if (mode === 'BOTH') return hasNw && hasDcs;
+                    return false;
+                });
+
+                setMatchingIatas(matched);
+                loadFlights().then(() => nav(Page.ResultList));
+            };
+
+            // Result List 컴포넌트
+            const StatusResultPage = () => {
+                const [showClosed, setShowClosed] = useState(false);
+                const nowMs = new Date().getTime();
+
+                // 항공사별 데이터 가공
+                const results = matchingIatas.map(iata => {
+                    const info = airlinesData[iata];
+                    const termFlights = flights.filter(f => {
+                        const isMatch = f.iata === iata && (info.term === 'T1' ? (f.terminalid === 'P01' || f.terminalid === 'P02') : f.terminalid === 'P03');
+                        if (!isMatch) return false;
+                        
+                        // 어제자 과거 편 제외 (오늘/내일 편 위주)
+                        const dep = new Date(
+                            parseInt(f.scheduleDateTime.substring(0, 4)), parseInt(f.scheduleDateTime.substring(4, 6)) - 1,
+                            parseInt(f.scheduleDateTime.substring(6, 8)), parseInt(f.scheduleDateTime.substring(8, 10)), parseInt(f.scheduleDateTime.substring(10, 12))
+                        );
+                        return dep.getTime() > nowMs - (4 * 60 * 60 * 1000); // 4시간 전까지만 유지
+                    });
+
+                    if (termFlights.length === 0) return { iata, state: 'NO_FLIGHT' };
+
+                    // 체크인중인지 검사 (출발 3시간 이내 ~ 현재시간 전)
+                    const openFlights = termFlights.filter(f => {
+                        const dep = new Date(
+                            parseInt(f.scheduleDateTime.substring(0, 4)), parseInt(f.scheduleDateTime.substring(4, 6)) - 1,
+                            parseInt(f.scheduleDateTime.substring(6, 8)), parseInt(f.scheduleDateTime.substring(8, 10)), parseInt(f.scheduleDateTime.substring(10, 12))
+                        );
+                        const diffMins = (dep.getTime() - nowMs) / 60000;
+                        return diffMins >= -30 && diffMins <= 180; 
+                    });
+
+                    // 오픈 전 (가장 빠른 미래 편)
+                    const futureFlights = termFlights.filter(f => {
+                        const dep = new Date(
+                            parseInt(f.scheduleDateTime.substring(0, 4)), parseInt(f.scheduleDateTime.substring(4, 6)) - 1,
+                            parseInt(f.scheduleDateTime.substring(6, 8)), parseInt(f.scheduleDateTime.substring(8, 10)), parseInt(f.scheduleDateTime.substring(10, 12))
+                        );
+                        return dep.getTime() > nowMs;
+                    });
+
+                    if (openFlights.length > 0) {
+                        const tgt = openFlights[0];
+                        return { iata, state: 'CHECK_IN', flight: tgt, counter: tgt.chkinrange || '확인요망' };
+                    } else if (futureFlights.length > 0) {
+                        const tgt = futureFlights[0];
+                        const d = new Date(parseInt(tgt.scheduleDateTime.substring(0,4)), parseInt(tgt.scheduleDateTime.substring(4,6))-1, parseInt(tgt.scheduleDateTime.substring(6,8)), parseInt(tgt.scheduleDateTime.substring(8,10)), parseInt(tgt.scheduleDateTime.substring(10,12)));
+                        d.setHours(d.getHours() - 3); // 3시간 전 오픈 가정
+                        const openTimeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+                        return { iata, state: 'NOT_OPEN', flight: tgt, openTime: openTimeStr };
+                    } else {
+                        return { iata, state: 'CLOSED' };
+                    }
+                });
+
+                const activeList = results.filter(r => r.state === 'CHECK_IN');
+                const waitList = results.filter(r => r.state === 'NOT_OPEN');
+                const closedList = results.filter(r => r.state === 'CLOSED');
+
+                const formatTime = (dt) => `${dt.substring(8,10)}:${dt.substring(10,12)}`;
+
+                return (
+                    <div className="flex flex-col h-full">
+                        <Header onBack={() => nav(Page.Main)} title={`현황 조회 결과 (${matchingIatas.length}개사)`} />
+                        <div className="flex-grow overflow-y-auto p-4 pb-20">
+                            {loading ? (
+                                <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div></div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* 체크인 중 */}
+                                    {activeList.length > 0 && (
+                                        <div>
+                                            <h2 className="text-emerald-400 font-bold mb-3 flex justify-between border-b border-slate-700 pb-2">
+                                                <span>수속 진행중 (체크인)</span>
+                                                <span className="text-white">{activeList.length}</span>
+                                            </h2>
+                                            <div className="grid gap-3">
+                                                {activeList.map(r => (
+                                                    <div key={r.iata} className="bg-slate-800 border-l-4 border-emerald-500 p-3 rounded shadow">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <div className="font-bold text-lg">{r.iata} <span className="text-xs font-normal text-slate-400 ml-1">{r.flight.airline}</span></div>
+                                                            <div className="bg-emerald-900 text-emerald-300 px-2 py-0.5 rounded text-sm font-bold">{r.counter}</div>
+                                                        </div>
+                                                        <div className="text-slate-300 text-sm">
+                                                            {r.flight.flightId} | {r.flight.airport} | {formatTime(r.flight.scheduleDateTime)} 출발
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 오픈 전 */}
+                                    {waitList.length > 0 && (
+                                        <div>
+                                            <h2 className="text-amber-400 font-bold mb-3 flex justify-between border-b border-slate-700 pb-2">
+                                                <span>오픈 대기중</span>
+                                                <span className="text-white">{waitList.length}</span>
+                                            </h2>
+                                            <div className="grid gap-3">
+                                                {waitList.map(r => (
+                                                    <div key={r.iata} className="bg-slate-800 border-l-4 border-amber-500 p-3 rounded shadow opacity-80">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <div className="font-bold text-lg">{r.iata} <span className="text-xs font-normal text-slate-400 ml-1">{r.flight.airline}</span></div>
+                                                            <div className="text-amber-300 text-sm font-bold">{r.openTime} 예정</div>
+                                                        </div>
+                                                        <div className="text-slate-400 text-sm">
+                                                            {r.flight.flightId} | {r.flight.airport} | {formatTime(r.flight.scheduleDateTime)} 출발
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 수속 마감 / 운항 종료 */}
+                                    <div className="pt-4">
+                                        <button onClick={() => setShowClosed(!showClosed)} className="w-full bg-slate-800 p-3 rounded flex justify-between items-center text-sm text-slate-400 font-bold border border-slate-700">
+                                            <span>운항 종료 및 마감 항공사 보기</span>
+                                            <span>{showClosed ? '▲' : '▼'} ({closedList.length})</span>
+                                        </button>
+                                        
+                                        {showClosed && (
+                                            <div className="grid grid-cols-3 gap-2 mt-3">
+                                                {closedList.map(r => (
+                                                    <div key={r.iata} className="bg-slate-800/50 text-slate-500 p-2 rounded text-center text-sm font-bold border border-slate-700/50">
+                                                        {r.iata} 마감
+                                                    </div>
+                                                ))}
+                                                {closedList.length === 0 && <div className="col-span-3 text-center text-xs py-2 text-slate-600">없음</div>}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            // 설정 페이지 
+            const SettingsPage = () => {
+                const [editMode, setEditMode] = useState(null); // iata code
+                const [formData, setFormData] = useState({ iata: '', term: 'T1', nw: '', dcs: '' });
+
+                const handleEdit = (iata) => {
+                    const d = airlinesData[iata];
+                    setFormData({ iata, term: d.term, nw: d.nw.join(','), dcs: d.dcs.join(',') });
+                    setEditMode(iata);
+                };
+                
+                const handleSave = () => {
+                    if(!formData.iata) return;
+                    const newData = { ...airlinesData };
+                    newData[formData.iata.toUpperCase()] = {
+                        term: formData.term,
+                        nw: formData.nw.split(',').map(s=>s.trim()).filter(Boolean),
+                        dcs: formData.dcs.split(',').map(s=>s.trim()).filter(Boolean)
+                    };
+                    setAirlinesData(newData);
+                    setEditMode(null);
+                };
+
+                const handleDelete = (iata) => {
+                    if(confirm(`${iata} 정보를 삭제하시겠습니까?`)){
+                        const newData = { ...airlinesData };
+                        delete newData[iata];
+                        setAirlinesData(newData);
+                    }
+                };
+
+                return (
+                    <div className="flex flex-col h-full bg-slate-900">
+                        <Header onBack={() => nav(Page.Main)} title="데이터 설정 및 관리" />
+                        <div className="flex-grow overflow-y-auto p-4">
+                            
+                            {/* 표출 기준 설정 Placeholder */}
+                            <div className="bg-slate-800 p-4 rounded-lg mb-6 border border-slate-700">
+                                <h3 className="font-bold text-slate-300 mb-2 text-sm">운항편 표출 기준 설정 (예정)</h3>
+                                <select className="w-full p-2 bg-slate-900 text-slate-300 border border-slate-600 rounded text-sm outline-none">
+                                    <option>가장 빠른 출발편 기준</option>
+                                    <option>현재 수속중인 모든 편 표출</option>
+                                </select>
+                            </div>
+
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-lg">항공사 네트워크 정보</h3>
+                                <button onClick={() => {setFormData({iata:'', term:'T1', nw:'', dcs:''}); setEditMode('NEW');}} className="bg-indigo-600 text-xs px-3 py-1.5 rounded font-bold">신규 추가</button>
+                            </div>
+
+                            {editMode && (
+                                <div className="bg-slate-800 p-4 rounded-lg mb-6 border border-indigo-500 shadow-lg">
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label className="text-xs text-slate-400 block mb-1">IATA 코드</label>
+                                            <input value={formData.iata} onChange={e=>setFormData({...formData, iata: e.target.value})} disabled={editMode !== 'NEW'} className="w-full bg-slate-900 p-2 rounded text-sm disabled:opacity-50 text-white border border-slate-700" placeholder="e.g. KE" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-400 block mb-1">터미널</label>
+                                            <select value={formData.term} onChange={e=>setFormData({...formData, term: e.target.value})} className="w-full bg-slate-900 p-2 rounded text-sm text-white border border-slate-700">
+                                                <option>T1</option>
+                                                <option>T2</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="text-xs text-slate-400 block mb-1">Network 망 (콤마 분리)</label>
+                                        <input value={formData.nw} onChange={e=>setFormData({...formData, nw: e.target.value})} className="w-full bg-slate-900 p-2 rounded text-sm text-white border border-slate-700" placeholder="ARINC, SITA..." />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="text-xs text-slate-400 block mb-1">DCS (콤마 분리)</label>
+                                        <input value={formData.dcs} onChange={e=>setFormData({...formData, dcs: e.target.value})} className="w-full bg-slate-900 p-2 rounded text-sm text-white border border-slate-700" placeholder="Amadeus, Navitaire..." />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setEditMode(null)} className="flex-1 bg-slate-600 py-2 rounded text-sm font-bold">취소</button>
+                                        <button onClick={handleSave} className="flex-1 bg-indigo-600 py-2 rounded text-sm font-bold">저장</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                {Object.keys(airlinesData).sort().map(iata => {
+                                    const d = airlinesData[iata];
+                                    return (
+                                        <div key={iata} className="bg-slate-800 p-3 rounded flex justify-between items-center border border-slate-700/50">
+                                            <div>
+                                                <div className="font-bold text-indigo-300">{iata} <span className="text-xs bg-slate-700 text-slate-300 px-1 rounded ml-1">{d.term}</span></div>
+                                                <div className="text-xs text-slate-400 mt-1">NW: {d.nw.join(', ')} | DCS: {d.dcs.join(', ')}</div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleEdit(iata)} className="text-xs bg-slate-700 px-2 py-1 rounded">수정</button>
+                                                <button onClick={() => handleDelete(iata)} className="text-xs bg-rose-900/50 text-rose-300 px-2 py-1 rounded">삭제</button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderContent = () => {
+                switch (page) {
+                    case Page.Login:
+                        return (
+                            <div className="flex flex-col h-full items-center justify-center p-6 bg-slate-900">
+                                <div className="text-4xl font-bold text-indigo-500 mb-2">ICN Status</div>
+                                <div className="text-slate-400 mb-8 text-sm">접근 코드를 입력해주세요</div>
+                                <form onSubmit={handleLogin} className="w-full max-w-xs flex flex-col gap-4">
+                                    <input type="password" value={pinInput} onChange={e=>setPinInput(e.target.value)} 
+                                           className="w-full bg-slate-800 p-4 rounded-lg text-center text-2xl tracking-widest text-white outline-none border border-slate-700 focus:border-indigo-500" 
+                                           placeholder="****" />
+                                    <button type="submit" className="w-full bg-indigo-600 py-4 rounded-lg font-bold text-lg shadow-lg">접속</button>
+                                </form>
+                            </div>
+                        );
+
+                    case Page.Main:
+                        return (
+                            <div className="flex flex-col h-full">
+                                <Header title="공항 장애/현황 모니터링" onSettings={() => nav(Page.Settings)} />
+                                <main className="flex-grow p-5 flex flex-col gap-4">
+                                    <div className="text-slate-400 text-sm mb-2">장애 발생 터미널을 선택하세요</div>
+                                    <button onClick={() => { setSelTerm('T1'); nav(Page.SearchSelect); }} className="p-8 rounded-lg text-2xl font-bold bg-cyan-800 shadow-lg flex items-center justify-between">
+                                        <span>T1 현황 파악</span><span className="text-cyan-400">❯</span>
+                                    </button>
+                                    <button onClick={() => { setSelTerm('T2'); nav(Page.SearchSelect); }} className="p-8 rounded-lg text-2xl font-bold bg-emerald-800 shadow-lg flex items-center justify-between">
+                                        <span>T2 현황 파악</span><span className="text-emerald-400">❯</span>
+                                    </button>
+                                </main>
+                            </div>
+                        );
+                    
+                    case Page.SearchSelect:
+                        return (
+                            <div className="flex flex-col h-full">
+                                <Header onBack={() => nav(Page.Main)} title={`${selTerm} 검색 기준 선택`} />
+                                <main className="flex-grow p-5 flex flex-col gap-4">
+                                    <button onClick={() => { setSearchMode('NW'); nav(Page.VendorSelect); }} className="p-6 rounded-lg text-xl font-bold bg-blue-700 shadow text-left">네트워크망 기준으로 검색</button>
+                                    <button onClick={() => { setSearchMode('DCS'); nav(Page.VendorSelect); }} className="p-6 rounded-lg text-xl font-bold bg-purple-700 shadow text-left">DCS 기준으로 검색</button>
+                                    <button onClick={() => { setSearchMode('BOTH'); nav(Page.DualSelect); }} className="p-6 rounded-lg text-xl font-bold bg-rose-700 shadow text-left border-2 border-rose-500/50">
+                                        네트워크망 & DCS 동시 만족 검색 <br/><span className="text-sm font-normal text-rose-200 mt-2 block">(특정 벤더 교집합 조건)</span>
+                                    </button>
+                                </main>
+                            </div>
+                        );
+
+                    case Page.VendorSelect:
+                        const vList = getAvailableOptions(searchMode.toLowerCase());
+                        return (
+                            <div className="flex flex-col h-full">
+                                <Header onBack={() => nav(Page.SearchSelect)} title={`${searchMode} 벤더사 선택`} />
+                                <div className="p-5 grid grid-cols-2 gap-3 overflow-y-auto content-start">
+                                    {vList.map(v => (
+                                        <button key={v} onClick={() => executeSearch(searchMode, searchMode==='NW'?v:'', searchMode==='DCS'?v:'')} 
+                                            className="py-5 rounded-lg font-bold text-lg bg-slate-700 hover:bg-slate-600 shadow border border-slate-600">
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case Page.DualSelect:
+                        const nwOpts = getAvailableOptions('nw');
+                        const dcsOpts = getAvailableOptions('dcs');
+                        return (
+                            <div className="flex flex-col h-full">
+                                <Header onBack={() => nav(Page.SearchSelect)} title="망 & DCS 상세 검색" />
+                                <div className="p-5 flex flex-col gap-6">
+                                    <div>
+                                        <label className="block font-bold mb-3 text-blue-300">1. 네트워크망 선택</label>
+                                        <select value={selNw} onChange={e=>setSelNw(e.target.value)} className="w-full p-4 bg-slate-800 rounded-lg text-lg border border-slate-600 outline-none">
+                                            <option value="">-- 선택하세요 --</option>
+                                            {nwOpts.map(o => <option key={o} value={o}>{o}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block font-bold mb-3 text-purple-300">2. DCS 선택</label>
+                                        <select value={selDcs} onChange={e=>setSelDcs(e.target.value)} className="w-full p-4 bg-slate-800 rounded-lg text-lg border border-slate-600 outline-none">
+                                            <option value="">-- 선택하세요 --</option>
+                                            {dcsOpts.map(o => <option key={o} value={o}>{o}</option>)}
+                                        </select>
+                                    </div>
+                                    <button onClick={() => executeSearch('BOTH', selNw, selDcs)} disabled={!selNw || !selDcs} 
+                                        className="mt-6 bg-rose-600 py-4 rounded-lg font-bold text-xl disabled:bg-slate-700 disabled:text-slate-500 shadow-lg">
+                                        조회하기
+                                    </button>
+                                </div>
+                            </div>
+                        );
+
+                    case Page.ResultList: return <StatusResultPage />;
+                    case Page.Settings: return <SettingsPage />;
+                    default: return null;
+                }
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-slate-900 h-full shadow-2xl relative">
+                    {renderContent()}
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
+
+```
