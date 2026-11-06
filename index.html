@@ -133,7 +133,7 @@
             ).getTime();
         };
 
-        // 헤더 컴포넌트 (새로고침 기능 추가됨)
+        // 헤더 컴포넌트
         const Header = ({ onBack, title, onSettings, onRefresh }) => (
             <header className="bg-slate-800 p-4 shadow-lg sticky top-0 z-10 flex items-center justify-between h-16 shrink-0">
                 <div className="flex items-center w-full overflow-hidden">
@@ -195,7 +195,7 @@
                             {data.state === 'NOT_OPEN' && <span className="ml-2 text-amber-400 font-bold">({data.openTime} 예정)</span>}
                         </div>
                         
-                        {/* 저장된 상태가 있을 경우 카드 닫혀있어도 항상 표출 */}
+                        {/* 저장된 상태가 있을 경우 항상 표출 */}
                         {savedStatus && (
                             <div className="mt-2 inline-flex items-center gap-1.5 bg-rose-900/60 border border-rose-500 text-rose-200 text-[14px] font-bold px-2 py-1 rounded">
                                 <span className="text-rose-400 text-xs">상태:</span> {savedStatus}
@@ -220,7 +220,6 @@
                                 </button>
                             </div>
                             
-                            {/* 기존 내역 롤다운 선택창 */}
                             {recentStatuses && recentStatuses.length > 0 && (
                                 <select 
                                     onChange={(e) => { if(e.target.value) setInputText(e.target.value); }}
@@ -256,20 +255,17 @@
                 return saved ? JSON.parse(saved) : DEFAULT_AIRLINE_INFO;
             });
 
-            // 항공사별 입력된 장애상태 (전역 관리)
             const [airlineStatuses, setAirlineStatuses] = useState(() => {
                 const saved = localStorage.getItem('airlineStatuses');
                 return saved ? JSON.parse(saved) : {};
             });
 
-            // 검색 조건 State
             const [searchMode, setSearchMode] = useState('');
             const [selTerm, setSelTerm] = useState('T1');
             const [selNw, setSelNw] = useState('');
             const [selDcs, setSelDcs] = useState('');
             const [matchingIatas, setMatchingIatas] = useState([]);
             
-            // 롤다운용 최근 이력 (전역)
             const [recentStatuses, setRecentStatuses] = useState(() => {
                 const saved = localStorage.getItem('recentStatuses');
                 return saved ? JSON.parse(saved) : [];
@@ -340,10 +336,7 @@
             const back = () => window.history.back();
 
             const handleSaveStatus = (iata, newStatus) => {
-                // 항공사별 상태 매핑
                 setAirlineStatuses(prev => ({ ...prev, [iata]: newStatus }));
-                
-                // 롤다운 목록 이력 추가 (중복 방지, 10개 유지)
                 if (!recentStatuses.includes(newStatus)) {
                     setRecentStatuses(prev => [newStatus, ...prev].slice(0, 10));
                 }
@@ -387,7 +380,6 @@
 
                 const results = matchingIatas.map(iata => {
                     const info = airlinesData[iata];
-                    // 금일 운항편만 필터링 (과거 포함)
                     const termFlights = flights.filter(f => {
                         const isMatch = f.iata === iata && (info.term === 'T1' ? (f.terminalid === 'P01' || f.terminalid === 'P02') : f.terminalid === 'P03');
                         if (!isMatch) return false;
@@ -396,13 +388,11 @@
 
                     if (termFlights.length === 0) return { iata, state: 'NO_FLIGHT' };
 
-                    // 체크인 중 (출발시간 1시간 전 ~ 3시간 후) - 지연 대비 여유시간 적용
                     const openFlights = termFlights.filter(f => {
                         const diffMins = (getDepMs(f.scheduleDateTime) - nowMs) / 60000;
                         return diffMins >= -60 && diffMins <= 180; 
                     });
 
-                    // 아직 오픈 전 (3시간 이후)
                     const futureFlights = termFlights.filter(f => {
                         return getDepMs(f.scheduleDateTime) > nowMs + (180 * 60000);
                     });
@@ -417,7 +407,6 @@
                         const openTimeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
                         return { iata, state: 'NOT_OPEN', flight: tgt, counter: tgt.chkinrange || '미배정', gate: tgt.gatenumber, openTime: openTimeStr };
                     } else {
-                        // 이미 모든 운항이 종료된 경우
                         return { iata, state: 'CLOSED' };
                     }
                 });
@@ -425,17 +414,59 @@
                 const activeList = results.filter(r => r.state === 'CHECK_IN');
                 const waitList = results.filter(r => r.state === 'NOT_OPEN');
                 const closedList = results.filter(r => r.state === 'CLOSED');
-                const noFlightList = results.filter(r => r.state === 'NO_FLIGHT'); // 아예 운항편 없음
+                const noFlightList = results.filter(r => r.state === 'NO_FLIGHT'); 
+
+                // 클립보드 복사 핸들러
+                const handleCopy = (type) => {
+                    let textLines = [];
+                    
+                    const addSection = (title, list, formatFn) => {
+                        if(list.length > 0) {
+                            textLines.push(`[${title}: ${list.length}]`);
+                            list.forEach(item => textLines.push(formatFn(item)));
+                            textLines.push("");
+                        }
+                    };
+
+                    const getStatusStr = (iata) => airlineStatuses[iata] ? ` | 상태: ${airlineStatuses[iata]}` : '';
+
+                    const formatActive = (r) => `- ${r.iata} (${r.flight.airline}) | 카운터: ${r.counter} | 게이트: ${r.gate ? 'G'+r.gate : '미정'}${getStatusStr(r.iata)}`;
+                    const formatWait = (r) => `- ${r.iata} (${r.flight.airline}) | 카운터: ${r.counter} | 게이트: ${r.gate ? 'G'+r.gate : '미정'} | ${r.openTime} 오픈예정${getStatusStr(r.iata)}`;
+                    const formatClosed = (r) => `- ${r.iata} 마감 및 종료`;
+                    const formatNoFlight = (r) => `- ${r.iata} 금일 운항없음`;
+
+                    if (type === 'OPEN') {
+                        addSection('수속 진행중', activeList, formatActive);
+                    } else if (type === 'OPEN_WAIT') {
+                        addSection('수속 진행중', activeList, formatActive);
+                        addSection('오픈 대기중', waitList, formatWait);
+                    } else if (type === 'ALL') {
+                        addSection('수속 진행중', activeList, formatActive);
+                        addSection('오픈 대기중', waitList, formatWait);
+                        addSection('마감/종료', closedList, formatClosed);
+                        addSection('금일 운항없음', noFlightList, formatNoFlight);
+                    }
+
+                    const finalText = textLines.join('\n').trim();
+                    if(!finalText) {
+                        alert('복사할 데이터가 없습니다.');
+                        return;
+                    }
+
+                    navigator.clipboard.writeText(finalText)
+                        .then(() => alert('현황이 클립보드에 복사되었습니다.'))
+                        .catch(() => alert('복사 실패'));
+                };
 
                 return (
                     <div className="flex flex-col h-full relative">
                         <Header 
                             onBack={back} 
                             title={`조회 결과 (${matchingIatas.length}개사)`} 
-                            onRefresh={() => loadFlights(true)} // 새로고침 아이콘
+                            onRefresh={() => loadFlights(true)}
                         />
                         
-                        <div className="flex-grow overflow-y-auto p-4 pb-20">
+                        <div className="flex-grow overflow-y-auto p-4 pb-10">
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center py-10 gap-3">
                                     <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-indigo-500"></div>
@@ -510,6 +541,23 @@
                                             </div>
                                         )}
                                     </div>
+                                    
+                                    {/* 복사 버튼 영역 */}
+                                    <div className="mt-8 border-t border-slate-700 pt-5 pb-6">
+                                        <h3 className="font-bold text-slate-300 mb-3 text-sm text-center">📋 현황 리스트 클립보드 복사</h3>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleCopy('OPEN')} className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded text-[13px] font-bold shadow-md transition text-emerald-300 border border-slate-600">
+                                                오픈중 전체
+                                            </button>
+                                            <button onClick={() => handleCopy('OPEN_WAIT')} className="flex-1 bg-indigo-700 hover:bg-indigo-600 py-3 rounded text-[13px] font-bold shadow-md transition border border-indigo-500 text-white">
+                                                오픈/예정 전체
+                                            </button>
+                                            <button onClick={() => handleCopy('ALL')} className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded text-[13px] font-bold shadow-md transition text-slate-300 border border-slate-600">
+                                                모든 내역 (마감포함)
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
                                 </div>
                             )}
                         </div>
@@ -538,13 +586,42 @@
                     setAirlinesData(newData);
                     setEditMode(null);
                 };
+                
+                const handleClearAirlineStatuses = () => {
+                    if(confirm("모든 항공사에 입력된 상태 뱃지를 지우시겠습니까?\n(입력된 장애 현황이 모두 삭제됩니다)")) {
+                        setAirlineStatuses({});
+                    }
+                };
+
+                const handleClearRecentStatuses = () => {
+                    if(confirm("입력창의 드롭다운 자동완성 히스토리를 비우시겠습니까?")) {
+                        setRecentStatuses([]);
+                    }
+                };
 
                 return (
                     <div className="flex flex-col h-full bg-slate-900">
                         <Header onBack={back} title="데이터 설정 및 관리" />
-                        <div className="flex-grow overflow-y-auto p-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-lg">항공사 네트워크 정보</h3>
+                        <div className="flex-grow overflow-y-auto p-4 pb-20">
+                            
+                            {/* 데이터 초기화 영역 */}
+                            <div className="bg-slate-800 p-4 rounded-lg mb-6 border border-slate-700">
+                                <h3 className="font-bold text-rose-400 mb-3 flex items-center gap-2">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    데이터 초기화 관리
+                                </h3>
+                                <div className="space-y-3">
+                                    <button onClick={handleClearAirlineStatuses} className="w-full bg-slate-900 border border-rose-900/50 hover:bg-rose-900/30 text-rose-300 py-3 rounded font-bold text-[13px] transition">
+                                        현재 입력된 [항공사별 장애 상태] 모두 비우기
+                                    </button>
+                                    <button onClick={handleClearRecentStatuses} className="w-full bg-slate-900 border border-slate-700 hover:bg-slate-700 text-slate-300 py-3 rounded font-bold text-[13px] transition">
+                                        입력창 [자동완성 히스토리] 비우기
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center mb-4 border-t border-slate-700 pt-6">
+                                <h3 className="font-bold text-lg text-indigo-300">항공사 네트워크 정보</h3>
                                 <button onClick={() => {setFormData({iata:'', term:'T1', nw:'', dcs:''}); setEditMode('NEW');}} className="bg-indigo-600 text-xs px-3 py-1.5 rounded font-bold">신규 추가</button>
                             </div>
 
