@@ -74,13 +74,6 @@
             'OZ': { term: 'T2', dcs: ['Amadeus'], nw: ['SITA'] }
         };
 
-        const DEFAULT_TEMPLATES = {
-            active: "- {iata} {time} {status}",
-            wait: "- {iata} {time} {status}",
-            closed: "- {iata} 마감",
-            noFlight: "- {iata} 운항없음"
-        };
-
         const Page = { 
             Login: -1,
             Main: 0, 
@@ -183,6 +176,16 @@
             const borderColor = isCheckIn ? 'border-emerald-500' : 'border-amber-500';
             const badgeBg = isCheckIn ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300';
 
+            // 저장된 상태 데이터 분기 처리 (기존 문자열 vs 새로운 {text, time} 객체 구조)
+            let statusText = '';
+            let statusTime = '';
+            if (typeof savedStatus === 'string') {
+                statusText = savedStatus;
+            } else if (savedStatus && savedStatus.text) {
+                statusText = savedStatus.text;
+                statusTime = savedStatus.time;
+            }
+
             return (
                 <div className={`bg-slate-800 border-l-4 ${borderColor} p-3 rounded shadow mb-3 transition-all duration-200`}>
                     <div onClick={() => setExpanded(!expanded)} className="cursor-pointer">
@@ -202,9 +205,11 @@
                             {data.state === 'NOT_OPEN' && <span className="ml-2 text-amber-400 font-bold">({data.openTime} 예정)</span>}
                         </div>
                         
-                        {savedStatus && (
+                        {/* 저장된 상태가 있을 경우 표출 및 시간 표시 */}
+                        {statusText && (
                             <div className="mt-2 inline-flex items-center gap-1.5 bg-rose-900/60 border border-rose-500 text-rose-200 text-[14px] font-bold px-2 py-1 rounded">
-                                <span className="text-rose-400 text-xs">상태:</span> {savedStatus}
+                                <span className="text-rose-400 text-xs">상태:</span> {statusText}
+                                {statusTime && <span className="text-rose-400/70 text-xs font-normal ml-1">({statusTime})</span>}
                             </div>
                         )}
                     </div>
@@ -270,14 +275,10 @@
                 return saved ? JSON.parse(saved) : DEFAULT_AIRLINE_INFO;
             });
 
+            // 구조 변경: { 'KE': { text: '수기발권', time: '14:30' } }
             const [airlineStatuses, setAirlineStatuses] = useState(() => {
                 const saved = localStorage.getItem('airlineStatuses');
                 return saved ? JSON.parse(saved) : {};
-            });
-
-            const [copyTemplates, setCopyTemplates] = useState(() => {
-                const saved = localStorage.getItem('copyTemplates');
-                return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;
             });
 
             const [searchMode, setSearchMode] = useState('');
@@ -292,6 +293,13 @@
             });
 
             useEffect(() => { isExitModalOpen.current = showExitModal; }, [showExitModal]);
+
+            // 백그라운드 데이터 사전 호출 (Pre-fetching)
+            useEffect(() => {
+                if (auth && flights.length === 0) {
+                    loadFlights();
+                }
+            }, [auth]);
 
             useEffect(() => {
                 const checkAuthSession = () => {
@@ -354,13 +362,19 @@
             useEffect(() => localStorage.setItem('airlineData', JSON.stringify(airlinesData)), [airlinesData]);
             useEffect(() => localStorage.setItem('recentStatuses', JSON.stringify(recentStatuses)), [recentStatuses]);
             useEffect(() => localStorage.setItem('airlineStatuses', JSON.stringify(airlineStatuses)), [airlineStatuses]);
-            useEffect(() => localStorage.setItem('copyTemplates', JSON.stringify(copyTemplates)), [copyTemplates]);
 
             const loadFlights = async (forceRefetch = false) => {
                 if (!forceRefetch && flights.length > 0) return;
+                // page === Page.ResultList 인 경우에만 화면에 스피너가 보이도록 제어됨
                 setLoading(true);
-                try { setFlights(await fetchFlightData()); } catch(e) { console.error(e); }
-                finally { setLoading(false); }
+                try { 
+                    const data = await fetchFlightData();
+                    setFlights(data);
+                } catch(e) { 
+                    console.error(e); 
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             const handleLogin = (e) => {
@@ -385,7 +399,12 @@
             const back = () => window.history.back();
 
             const handleSaveStatus = (iata, newStatus) => {
-                setAirlineStatuses(prev => ({ ...prev, [iata]: newStatus }));
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                
+                // 시간 정보와 함께 상태 저장
+                setAirlineStatuses(prev => ({ ...prev, [iata]: { text: newStatus, time: timeStr } }));
+                
                 if (!recentStatuses.includes(newStatus)) {
                     setRecentStatuses(prev => [newStatus, ...prev].slice(0, 10));
                 }
@@ -417,30 +436,29 @@
                 });
 
                 setMatchingIatas(matched);
-                if (flights.length === 0) setLoading(true);
+                if (flights.length === 0) setLoading(true); // 만약 Pre-fetch가 덜 끝났다면 로딩 표시
                 nav(Page.ResultList);
                 loadFlights().catch(e => console.error(e));
             };
 
-            const formatCopyItem = (r, template) => {
-                let res = template;
-                const flightTime = r.flight ? `${r.flight.scheduleDateTime.substring(8,10)}:${r.flight.scheduleDateTime.substring(10,12)}` : '';
-                res = res.replace(/{iata}/g, r.iata || '');
-                res = res.replace(/{airline}/g, (r.flight && r.flight.airline) || '');
-                res = res.replace(/{time}/g, flightTime);
-                res = res.replace(/{counter}/g, r.counter || '미정');
-                res = res.replace(/{gate}/g, r.gate ? 'G'+r.gate : '미정');
-                res = res.replace(/{openTime}/g, r.openTime || '');
-                res = res.replace(/{status}/g, airlineStatuses[r.iata] || '');
-                // 빈 공백 여러개를 하나로 줄이고 앞뒤 공백 제거
-                return res.replace(/ {2,}/g, ' ').trim();
-            };
-
+            // 조회 결과 화면
             const StatusResultPage = () => {
                 const [showClosed, setShowClosed] = useState(false);
-                const now = new Date();
-                const nowMs = now.getTime();
-                const todayStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+                const [currentTime, setCurrentTime] = useState(new Date());
+
+                // 실시간 시계 작동 (1분 단위)
+                useEffect(() => {
+                    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+                    return () => clearInterval(timer);
+                }, []);
+
+                const formatFullDateTime = (date) => {
+                    const days = ['일', '월', '화', '수', '목', '금', '토'];
+                    return `${date.getFullYear()}. ${String(date.getMonth()+1).padStart(2,'0')}. ${String(date.getDate()).padStart(2,'0')} (${days[date.getDay()]}) ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+                };
+
+                const nowMs = currentTime.getTime();
+                const todayStr = `${currentTime.getFullYear()}${String(currentTime.getMonth()+1).padStart(2,'0')}${String(currentTime.getDate()).padStart(2,'0')}`;
 
                 const results = matchingIatas.map(iata => {
                     const info = airlinesData[iata];
@@ -480,39 +498,6 @@
                 const closedList = results.filter(r => r.state === 'CLOSED');
                 const noFlightList = results.filter(r => r.state === 'NO_FLIGHT'); 
 
-                const handleCopy = (type) => {
-                    let textLines = [];
-                    
-                    const addSection = (title, list, tplKey) => {
-                        if(list.length > 0) {
-                            textLines.push(`[${title}]`);
-                            list.forEach(item => textLines.push(formatCopyItem(item, copyTemplates[tplKey])));
-                        }
-                    };
-
-                    if (type === 'OPEN') {
-                        addSection('오픈', activeList, 'active');
-                    } else if (type === 'OPEN_WAIT') {
-                        addSection('오픈', activeList, 'active');
-                        addSection('오픈예정', waitList, 'wait');
-                    } else if (type === 'ALL') {
-                        addSection('오픈', activeList, 'active');
-                        addSection('오픈예정', waitList, 'wait');
-                        addSection('마감', closedList, 'closed');
-                        addSection('운항없음', noFlightList, 'noFlight');
-                    }
-
-                    const finalText = textLines.join('\n').trim();
-                    if(!finalText) {
-                        alert('복사할 데이터가 없습니다.');
-                        return;
-                    }
-
-                    navigator.clipboard.writeText(finalText)
-                        .then(() => alert('현황이 클립보드에 복사되었습니다.'))
-                        .catch(() => alert('복사 실패'));
-                };
-
                 return (
                     <div className="flex flex-col h-full relative">
                         <Header 
@@ -521,6 +506,13 @@
                             onRefresh={() => loadFlights(true)}
                         />
                         
+                        {/* 현재 날짜/시간 상단 고정 바 */}
+                        <div className="bg-slate-900 border-b border-slate-700 py-2.5 text-center shadow-md shrink-0">
+                            <div className="text-emerald-400 text-sm font-bold tracking-wide">
+                                🕒 {formatFullDateTime(currentTime)} 기준
+                            </div>
+                        </div>
+
                         <div className="flex-grow overflow-y-auto p-4 pb-10">
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4 h-full animate-[fadeIn_0.2s_ease-out]">
@@ -593,22 +585,6 @@
                                             </div>
                                         )}
                                     </div>
-                                    
-                                    <div className="mt-8 border-t border-slate-700 pt-5 pb-6">
-                                        <h3 className="font-bold text-slate-300 mb-3 text-sm text-center">📋 현황 리스트 클립보드 복사</h3>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleCopy('OPEN')} className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded text-[13px] font-bold shadow-md transition text-emerald-300 border border-slate-600">
-                                                오픈중 전체
-                                            </button>
-                                            <button onClick={() => handleCopy('OPEN_WAIT')} className="flex-1 bg-indigo-700 hover:bg-indigo-600 py-3 rounded text-[13px] font-bold shadow-md transition border border-indigo-500 text-white">
-                                                오픈/예정 전체
-                                            </button>
-                                            <button onClick={() => handleCopy('ALL')} className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded text-[13px] font-bold shadow-md transition text-slate-300 border border-slate-600">
-                                                모든 내역 (마감포함)
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
                                 </div>
                             )}
                         </div>
@@ -619,7 +595,6 @@
             const SettingsPage = () => {
                 const [editMode, setEditMode] = useState(null); 
                 const [formData, setFormData] = useState({ iata: '', term: 'T1', nw: '', dcs: '' });
-                const [tempTpl, setTempTpl] = useState(copyTemplates);
 
                 const handleEdit = (iata) => {
                     const d = airlinesData[iata];
@@ -651,11 +626,6 @@
                     }
                 };
 
-                const handleSaveTemplates = () => {
-                    setCopyTemplates(tempTpl);
-                    alert('복사 양식이 저장되었습니다.');
-                };
-
                 return (
                     <div className="flex flex-col h-full bg-slate-900">
                         <Header onBack={back} title="데이터 설정 및 관리" />
@@ -674,39 +644,6 @@
                                     <button onClick={handleClearRecentStatuses} className="w-full bg-slate-900 border border-slate-700 hover:bg-slate-700 text-slate-300 py-3 rounded font-bold text-[13px] transition">
                                         입력창 [자동완성 히스토리] 비우기
                                     </button>
-                                </div>
-                            </div>
-
-                            {/* 클립보드 커스텀 설정 */}
-                            <div className="bg-slate-800 p-4 rounded-lg mb-6 border border-slate-700">
-                                <h3 className="font-bold text-emerald-400 mb-3">📋 클립보드 복사 양식 설정</h3>
-                                <div className="text-xs text-slate-400 mb-3 bg-slate-900 p-3 rounded leading-relaxed border border-slate-700/50">
-                                    <span className="font-bold text-slate-300">[사용 가능 변수]</span><br/>
-                                    {'{iata}'}: 항공사코드 (예: KE)<br/>
-                                    {'{airline}'}: 항공사명 (예: 대한항공)<br/>
-                                    {'{time}'}: 출발시간 (예: 14:30)<br/>
-                                    {'{status}'}: 입력한 장애상태<br/>
-                                    {'{counter}'}: 체크인 카운터<br/>
-                                    {'{gate}'}: 탑승구 (예: G253)
-                                </div>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="text-xs text-slate-400 block mb-1">수속 진행중 (오픈)</label>
-                                        <input value={tempTpl.active} onChange={e=>setTempTpl({...tempTpl, active: e.target.value})} className="w-full bg-slate-900 p-2 rounded text-sm text-white border border-slate-700 focus:border-indigo-500 outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-400 block mb-1">오픈 대기중 (예정)</label>
-                                        <input value={tempTpl.wait} onChange={e=>setTempTpl({...tempTpl, wait: e.target.value})} className="w-full bg-slate-900 p-2 rounded text-sm text-white border border-slate-700 focus:border-indigo-500 outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-400 block mb-1">마감 및 종료</label>
-                                        <input value={tempTpl.closed} onChange={e=>setTempTpl({...tempTpl, closed: e.target.value})} className="w-full bg-slate-900 p-2 rounded text-sm text-white border border-slate-700 focus:border-indigo-500 outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-400 block mb-1">금일 운항 없음</label>
-                                        <input value={tempTpl.noFlight} onChange={e=>setTempTpl({...tempTpl, noFlight: e.target.value})} className="w-full bg-slate-900 p-2 rounded text-sm text-white border border-slate-700 focus:border-indigo-500 outline-none" />
-                                    </div>
-                                    <button onClick={handleSaveTemplates} className="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded text-sm font-bold mt-2 transition">양식 저장</button>
                                 </div>
                             </div>
 
