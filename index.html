@@ -80,6 +80,7 @@
             SearchSelect: 1, 
             VendorSelect: 2, 
             DualSelect: 3,
+            AirlineSelect: 6, // 새로 추가된 항공사 선택 화면
             ResultList: 4,
             Settings: 5
         };
@@ -114,15 +115,18 @@
             return flights;
         };
 
+        // 데이터 캐싱 방지 적용 (_ts 파라미터 및 cache: 'no-store')
         const fetchFlightData = async () => {
             const f = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
             const t = f(new Date()); 
             const tm = f(new Date(new Date().setDate(new Date().getDate() + 1)));
+            const ts = new Date().getTime(); // 캐시 무효화 타임스탬프
+            
             const urls = [
-                `${GATE_API_URL}&selectdate=${t}&from_time=0000&to_time=2359`,
-                `${GATE_API_URL}&selectdate=${tm}&from_time=0000&to_time=2359`
+                `${GATE_API_URL}&selectdate=${t}&from_time=0000&to_time=2359&_ts=${ts}`,
+                `${GATE_API_URL}&selectdate=${tm}&from_time=0000&to_time=2359&_ts=${ts}`
             ];
-            const xmls = await Promise.all(urls.map(u => fetch(u).then(res => res.text())));
+            const xmls = await Promise.all(urls.map(u => fetch(u, { cache: 'no-store' }).then(res => res.text())));
             const all = xmls.flatMap(x => parseFlightsFromXML(x));
             return all.sort((a, b) => a.scheduleDateTime.localeCompare(b.scheduleDateTime));
         };
@@ -176,7 +180,6 @@
             const borderColor = isCheckIn ? 'border-emerald-500' : 'border-amber-500';
             const badgeBg = isCheckIn ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300';
 
-            // 저장된 상태 데이터 분기 처리 (기존 문자열 vs 새로운 {text, time} 객체 구조)
             let statusText = '';
             let statusTime = '';
             if (typeof savedStatus === 'string') {
@@ -205,7 +208,6 @@
                             {data.state === 'NOT_OPEN' && <span className="ml-2 text-amber-400 font-bold">({data.openTime} 예정)</span>}
                         </div>
                         
-                        {/* 저장된 상태가 있을 경우 표출 및 시간 표시 */}
                         {statusText && (
                             <div className="mt-2 inline-flex items-center gap-1.5 bg-rose-900/60 border border-rose-500 text-rose-200 text-[14px] font-bold px-2 py-1 rounded">
                                 <span className="text-rose-400 text-xs">상태:</span> {statusText}
@@ -275,7 +277,6 @@
                 return saved ? JSON.parse(saved) : DEFAULT_AIRLINE_INFO;
             });
 
-            // 구조 변경: { 'KE': { text: '수기발권', time: '14:30' } }
             const [airlineStatuses, setAirlineStatuses] = useState(() => {
                 const saved = localStorage.getItem('airlineStatuses');
                 return saved ? JSON.parse(saved) : {};
@@ -285,6 +286,11 @@
             const [selTerm, setSelTerm] = useState('T1');
             const [selNw, setSelNw] = useState('');
             const [selDcs, setSelDcs] = useState('');
+            
+            // 검색 필터 컨텍스트 및 선택된 항공사 Set 상태 추가
+            const [searchFilterText, setSearchFilterText] = useState('');
+            const [selAirlines, setSelAirlines] = useState(new Set()); 
+            
             const [matchingIatas, setMatchingIatas] = useState([]);
             
             const [recentStatuses, setRecentStatuses] = useState(() => {
@@ -365,7 +371,6 @@
 
             const loadFlights = async (forceRefetch = false) => {
                 if (!forceRefetch && flights.length > 0) return;
-                // page === Page.ResultList 인 경우에만 화면에 스피너가 보이도록 제어됨
                 setLoading(true);
                 try { 
                     const data = await fetchFlightData();
@@ -402,7 +407,6 @@
                 const now = new Date();
                 const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
                 
-                // 시간 정보와 함께 상태 저장
                 setAirlineStatuses(prev => ({ ...prev, [iata]: { text: newStatus, time: timeStr } }));
                 
                 if (!recentStatuses.includes(newStatus)) {
@@ -421,6 +425,7 @@
                 return Array.from(s).sort();
             };
 
+            // 검색 조건 완료 후 '항공사 선택창(AirlineSelect)' 으로 이동하도록 로직 변경
             const executeSearch = (mode, nwVal, dcsVal) => {
                 const matched = Object.keys(airlinesData).filter(iata => {
                     const info = airlinesData[iata];
@@ -435,18 +440,72 @@
                     return false;
                 });
 
-                setMatchingIatas(matched);
-                if (flights.length === 0) setLoading(true); // 만약 Pre-fetch가 덜 끝났다면 로딩 표시
-                nav(Page.ResultList);
-                loadFlights().catch(e => console.error(e));
+                let filterTitle = '';
+                if(mode === 'NW') filterTitle = nwVal;
+                else if(mode === 'DCS') filterTitle = dcsVal;
+                else if(mode === 'BOTH') filterTitle = `${nwVal} & ${dcsVal}`;
+
+                setSearchFilterText(filterTitle);
+                setSelAirlines(new Set(matched));
+                nav(Page.AirlineSelect);
             };
 
-            // 조회 결과 화면
+            // 새로운 화면: 항공사 수동 선택/해제 페이지 (사진 뷰 반영)
+            const AirlineSelectPage = () => {
+                const terminalAirlines = Object.keys(airlinesData).filter(iata => airlinesData[iata].term === selTerm).sort();
+                
+                const toggleAirline = (al) => {
+                    const newSet = new Set(selAirlines);
+                    if (newSet.has(al)) newSet.delete(al);
+                    else newSet.add(al);
+                    setSelAirlines(newSet);
+                };
+
+                const goToResult = () => {
+                    setMatchingIatas(Array.from(selAirlines).sort());
+                    if (flights.length === 0) setLoading(true);
+                    nav(Page.ResultList);
+                    // 혹시라도 안불러와졌다면 재호출 (캐싱 없이 최신)
+                    loadFlights().catch(e => console.error(e));
+                };
+
+                return (
+                    <div className="flex flex-col h-full bg-slate-900">
+                        <Header onBack={back} title={`[${searchMode}] 항공사 선택`} />
+                        <div className="flex-grow overflow-y-auto p-3 content-start">
+                            {/* 선택 기준 텍스트 표출 */}
+                            <div className="mb-4 bg-slate-800 border border-slate-700 p-3 rounded-lg text-sm text-slate-300">
+                                <strong>선택 조건:</strong> <span className="text-indigo-400 font-bold ml-1">{searchFilterText}</span>
+                            </div>
+
+                            {/* 항공사 버튼 그리드 (사진 UI 디자인 적용) */}
+                            <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 pb-24">
+                                {terminalAirlines.map(al => (
+                                    <button key={al} onClick={() => toggleAirline(al)}
+                                        className={`py-3 rounded font-bold text-base transition-all duration-200 
+                                        ${selAirlines.has(al) ? 'bg-rose-500 text-white ring-[1.5px] ring-white scale-95 shadow-inner' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}>
+                                        {al}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* 하단 플로팅 결과 확인 버튼 */}
+                        <div className="p-4 bg-slate-900 border-t border-slate-700 absolute bottom-0 left-0 w-full z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.5)]">
+                            <button onClick={goToResult} disabled={selAirlines.size === 0}
+                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 font-bold text-[19px] rounded-lg shadow-lg transition">
+                                결과 확인 ({selAirlines.size}개)
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 조회 결과 화면 (시간 갱신, 검색 기준 뱃지 추가됨)
             const StatusResultPage = () => {
                 const [showClosed, setShowClosed] = useState(false);
                 const [currentTime, setCurrentTime] = useState(new Date());
 
-                // 실시간 시계 작동 (1분 단위)
                 useEffect(() => {
                     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
                     return () => clearInterval(timer);
@@ -460,6 +519,7 @@
                 const nowMs = currentTime.getTime();
                 const todayStr = `${currentTime.getFullYear()}${String(currentTime.getMonth()+1).padStart(2,'0')}${String(currentTime.getDate()).padStart(2,'0')}`;
 
+                // results는 렌더링될 때 currentTime 기준으로 실시간 분류가 이뤄짐 (refresh 시 flights 객체가 바뀌어 다시 렌더링됨)
                 const results = matchingIatas.map(iata => {
                     const info = airlinesData[iata];
                     const termFlights = flights.filter(f => {
@@ -503,11 +563,16 @@
                         <Header 
                             onBack={back} 
                             title={`조회 결과 (${matchingIatas.length}개사)`} 
-                            onRefresh={() => loadFlights(true)}
+                            onRefresh={() => loadFlights(true)} // 새로고침 아이콘
                         />
                         
-                        {/* 현재 날짜/시간 상단 고정 바 */}
-                        <div className="bg-slate-900 border-b border-slate-700 py-2.5 text-center shadow-md shrink-0">
+                        {/* 현재 날짜/시간 + 검색 컨텍스트 뱃지 (상단 고정) */}
+                        <div className="bg-slate-900 border-b border-slate-700 py-2.5 px-3 flex flex-wrap justify-center items-center gap-2 shadow-md shrink-0">
+                            {searchFilterText && (
+                                <span className="bg-indigo-600 px-2 py-0.5 rounded text-white text-[11px] font-bold tracking-wider uppercase border border-indigo-400">
+                                    {searchFilterText}
+                                </span>
+                            )}
                             <div className="text-emerald-400 text-sm font-bold tracking-wide">
                                 🕒 {formatFullDateTime(currentTime)} 기준
                             </div>
@@ -517,7 +582,7 @@
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4 h-full animate-[fadeIn_0.2s_ease-out]">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-500"></div>
-                                    <div className="text-slate-300 font-bold text-base">실시간 데이터 조회 중...</div>
+                                    <div className="text-slate-300 font-bold text-base">실시간 데이터 갱신 중...</div>
                                 </div>
                             ) : (
                                 <div className="space-y-6 animate-[fadeIn_0.3s_ease-out]">
@@ -827,8 +892,12 @@
                             </div>
                         );
 
-                    case Page.ResultList: return <StatusResultPage />;
-                    case Page.Settings: return <SettingsPage />;
+                    case Page.AirlineSelect:
+                        return <AirlineSelectPage />;
+                    case Page.ResultList: 
+                        return <StatusResultPage />;
+                    case Page.Settings: 
+                        return <SettingsPage />;
                     default: return null;
                 }
             };
