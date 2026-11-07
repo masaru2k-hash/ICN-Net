@@ -145,16 +145,17 @@
                     {onBack && <button onClick={onBack} className="text-indigo-400 text-3xl mr-3 leading-none pb-1 shrink-0">&#8592;</button>}
                     <h1 className="text-xl font-bold text-white truncate flex-1">{title}</h1>
                 </div>
-                <div className="flex shrink-0 ml-2">
+                {/* 우측 아이콘 2개 나란히 배치 */}
+                <div className="flex shrink-0 ml-2 items-center">
                     {onRefresh && (
-                        <button onClick={onRefresh} className="text-emerald-400 p-2 mr-1 hover:bg-slate-700 rounded-full transition">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <button onClick={onRefresh} className="text-emerald-400 p-2 mr-1 hover:bg-slate-700 rounded-full transition flex items-center justify-center">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                         </button>
                     )}
                     {onSettings && (
-                        <button onClick={onSettings} className="text-slate-300 p-2">
+                        <button onClick={onSettings} className="text-slate-300 p-2 hover:bg-slate-700 rounded-full transition flex items-center justify-center">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         </button>
                     )}
@@ -465,7 +466,12 @@
 
                 return (
                     <div className="flex flex-col h-full bg-slate-900">
-                        <Header onBack={back} title={`[${searchMode}] 항공사 선택`} />
+                        <Header 
+                            onBack={back} 
+                            title={`[${searchMode}] 항공사 선택`} 
+                            onSettings={() => nav(Page.Settings)} 
+                            onRefresh={() => loadFlights(true)}
+                        />
                         <div className="flex-grow overflow-y-auto p-3 content-start">
                             <div className="mb-4 bg-slate-800 border border-slate-700 p-3 rounded-lg text-sm text-slate-300">
                                 <strong>선택 조건:</strong> <span className="text-indigo-400 font-bold ml-1">{searchFilterText}</span>
@@ -517,7 +523,6 @@
 
                     if (allTermFlights.length === 0) return { iata, state: 'NO_FLIGHT' };
 
-                    // 수정사항 반영: 출발 시간이 '현재 시간 이상(아직 출발 안 함)' 인 운항편만 필터링 (1분이라도 지나면 제외)
                     const upcomingFlights = allTermFlights.filter(f => {
                         const depMs = f.estimatedDateTime && f.estimatedDateTime.length >= 12 
                                       ? getDepMs(f.estimatedDateTime) 
@@ -561,6 +566,7 @@
                         <Header 
                             onBack={back} 
                             title={`조회 결과 (${matchingIatas.length}개사)`} 
+                            onSettings={() => nav(Page.Settings)}
                             onRefresh={() => loadFlights(true)}
                         />
                         
@@ -690,7 +696,11 @@
 
                 return (
                     <div className="flex flex-col h-full bg-slate-900">
-                        <Header onBack={back} title="데이터 설정 및 관리" />
+                        <Header 
+                            onBack={back} 
+                            title="데이터 설정 및 관리" 
+                            onRefresh={() => loadFlights(true)}
+                        />
                         <div className="flex-grow overflow-y-auto p-4 pb-20">
                             
                             <div className="bg-slate-800 p-4 rounded-lg mb-6 border border-slate-700">
@@ -814,7 +824,11 @@
                     case Page.Main:
                         return (
                             <div className="flex flex-col h-full">
-                                <Header title="공항 장애/현황 모니터링" onSettings={() => nav(Page.Settings)} />
+                                <Header 
+                                    title="공항 장애/현황 모니터링" 
+                                    onSettings={() => nav(Page.Settings)} 
+                                    onRefresh={() => loadFlights(true)} 
+                                />
                                 <main className="flex-grow p-5 flex flex-col gap-4">
                                     <div className="text-slate-400 text-sm mb-2">장애 발생 터미널을 선택하세요</div>
                                     <button onClick={() => { setSelTerm('T1'); nav(Page.SearchSelect); }} className="p-8 rounded-lg text-2xl font-bold bg-cyan-800 shadow-lg flex items-center justify-between">
@@ -830,7 +844,12 @@
                     case Page.SearchSelect:
                         return (
                             <div className="flex flex-col h-full">
-                                <Header onBack={back} title={`${selTerm} 검색 기준 선택`} />
+                                <Header 
+                                    onBack={back} 
+                                    title={`${selTerm} 검색 기준 선택`} 
+                                    onSettings={() => nav(Page.Settings)} 
+                                    onRefresh={() => loadFlights(true)}
+                                />
                                 <main className="flex-grow p-5 flex flex-col gap-4">
                                     <button onClick={() => { setSearchMode('NW'); nav(Page.VendorSelect); }} className="p-6 rounded-lg text-xl font-bold bg-blue-700 shadow text-left">네트워크망 기준으로 검색</button>
                                     <button onClick={() => { setSearchMode('DCS'); nav(Page.VendorSelect); }} className="p-6 rounded-lg text-xl font-bold bg-purple-700 shadow text-left">DCS 기준으로 검색</button>
@@ -845,7 +864,12 @@
                         const vList = getAvailableOptions(searchMode.toLowerCase());
                         return (
                             <div className="flex flex-col h-full">
-                                <Header onBack={back} title={`${searchMode} 벤더사 선택`} />
+                                <Header 
+                                    onBack={back} 
+                                    title={`${searchMode} 벤더사 선택`} 
+                                    onSettings={() => nav(Page.Settings)} 
+                                    onRefresh={() => loadFlights(true)}
+                                />
                                 <div className="p-5 grid grid-cols-2 gap-3 overflow-y-auto content-start">
                                     {vList.map(v => (
                                         <button key={v} onClick={() => executeSearch(searchMode, searchMode==='NW'?v:'', searchMode==='DCS'?v:'')} 
@@ -862,7 +886,12 @@
                         const dcsOpts = getAvailableOptions('dcs');
                         return (
                             <div className="flex flex-col h-full">
-                                <Header onBack={back} title="망 & DCS 상세 검색" />
+                                <Header 
+                                    onBack={back} 
+                                    title="망 & DCS 상세 검색" 
+                                    onSettings={() => nav(Page.Settings)} 
+                                    onRefresh={() => loadFlights(true)}
+                                />
                                 <div className="p-5 flex flex-col gap-6">
                                     <div>
                                         <label className="block font-bold mb-3 text-blue-300">1. 네트워크망 선택</label>
