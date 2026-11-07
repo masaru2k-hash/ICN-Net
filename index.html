@@ -39,39 +39,100 @@
         const PROXY_BASE_URL = 'https://winter-unit-6c7a.masaru2k.workers.dev/?url=';
         const GATE_API_URL = PROXY_BASE_URL + encodeURIComponent('http://apis.data.go.kr/B551177/StatusOfPassengerFlightsDSOdp/getPassengerDeparturesDSOdp?serviceKey=6uC38lshDqWE5U0LuYIGHZ3XeIIEocXrQmhXd11WEmLFLh5ygZSG%2FPNeYov0pyzTU99ISscjIZIp%2FL%2FE2oI%2FYA%3D%3D&type=xml');
         
+        // 2026.10.02 기준 인증 항공사 최신화 데이터
         const DEFAULT_AIRLINE_INFO = {
             '3U': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
             '5J': { term: 'T1', dcs: ['Navitaire'], nw: ['SITA'] },
             '7C': { term: 'T1', dcs: ['Navitaire'], nw: ['SITA'] },
             '8M': { term: 'T1', dcs: ['HITIT'], nw: ['SITA'] },
             '9C': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['SITA'] },
+            '9G': { term: 'T1', dcs: ['Amadeus'], nw: ['ARINC'] },
             'AA': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['SITA'] },
-            'AC': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'AC': { term: 'T1', dcs: ['Acmenu', 'Amadeus'], nw: ['SITA'] },
+            'AF': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
             'AI': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'AK': { term: 'T1', dcs: ['Navitaire'], nw: ['ARINC'] },
+            'AM': { term: 'T2', dcs: ['SABRE'], nw: ['SITA'] },
+            'AY': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'BI': { term: 'T1', dcs: ['HITIT'], nw: ['SITA'] },
+            'BR': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'BX': { term: 'T2', dcs: ['IN-HOUSE'], nw: ['ARINC'] },
+            'C6': { term: 'T1', dcs: ['IPORT', 'IN-HOUSE'], nw: ['ARINC'] }, // 사진 1(IPORT), 사진 3(IN-HOUSE) 반영
             'CA': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'CI': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
             'CX': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
             'CZ': { term: 'T1', dcs: ['TravelSky'], nw: ['SITA'] },
-            'EK': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['ARINC'] },
-            'EY': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
-            'LH': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
-            'MH': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
-            'SQ': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
-            'TG': { term: 'T1', dcs: ['Amadeus'], nw: ['ARINC'] },
-            'TW': { term: 'T1', dcs: ['IBS', 'IPORT'], nw: ['SITA'] }, 
-            'UA': { term: 'T1', dcs: ['Q-Logic'], nw: ['SITA'] },
-            'VJ': { term: 'T1', dcs: ['IPORT'], nw: ['ARINC'] },
-            'VN': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
-            'WE': { term: 'T1', dcs: ['IBS'], nw: ['전용망'] },
-            
-            'AF': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
-            'AM': { term: 'T2', dcs: ['SABRE'], nw: ['SITA'] },
-            'BX': { term: 'T2', dcs: ['IN-HOUSE'], nw: ['ARINC'] },
-            'CI': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'D7': { term: 'T1', dcs: ['Navitaire'], nw: ['ARINC'] },
             'DL': { term: 'T2', dcs: ['IN-HOUSE'], nw: ['전용망'] },
+            'DV': { term: 'T1', dcs: ['SABRE'], nw: ['SITA'] },
+            'EK': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['ARINC'] },
+            'ET': { term: 'T1', dcs: ['SABRE'], nw: ['ARINC'] },
+            'EY': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'FD': { term: 'T1', dcs: ['Navitaire'], nw: ['ARINC'] },
+            'FM': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'GA': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'GS': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'HB': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'HH': { term: 'T1', dcs: ['IPORT'], nw: ['ARINC'] },
+            'HO': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'HU': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'HX': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'HY': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'IT': { term: 'T1', dcs: ['Navitaire'], nw: ['ARINC'] },
+            'JQ': { term: 'T1', dcs: ['Navitaire'], nw: ['SITA'] },
+            'KC': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
             'KE': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
             'KL': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'KN': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'LH': { term: 'T1', dcs: ['LHS', 'Amadeus'], nw: ['SITA'] },
             'LJ': { term: 'T2', dcs: ['IBS'], nw: ['ARINC'] },
-            'OZ': { term: 'T2', dcs: ['Amadeus'], nw: ['SITA'] }
+            'LO': { term: 'T1', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'LX': { term: 'T1', dcs: ['LHS', 'Amadeus'], nw: ['SITA'] },
+            'M0': { term: 'T1', dcs: ['Sabre'], nw: ['ARINC'] }, // 숫자 0인지 알파벳 O인지 모호하나 사진상 M0로 추정
+            'MF': { term: 'T2', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'MH': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'MM': { term: 'T1', dcs: ['IPORT'], nw: ['ARINC'] },
+            'MU': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'NQ': { term: 'T1', dcs: ['RADIXX'], nw: ['ARINC'] },
+            'NX': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'NZ': { term: 'T1', dcs: ['Q-Logic'], nw: ['ARINC'] },
+            'OD': { term: 'T1', dcs: ['SABRE'], nw: ['SITA'] },
+            'OK': { term: 'T2', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'OM': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'OZ': { term: 'T2', dcs: ['Amadeus'], nw: ['SITA'] },
+            'PR': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'QF': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'QR': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'QV': { term: 'T1', dcs: ['SABRE'], nw: ['SITA'] },
+            'QW': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC', 'SITA'] },
+            'RS': { term: 'T2', dcs: ['IBS'], nw: ['전용망'] },
+            'SC': { term: 'T1', dcs: ['TravelSky'], nw: ['SITA'] },
+            'SK': { term: 'T2', dcs: ['Amadeus'], nw: ['SITA'] },
+            'SQ': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'T5': { term: 'T1', dcs: ['HITIT'], nw: ['ARINC'] },
+            'TG': { term: 'T1', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'TK': { term: 'T1', dcs: ['IN-HOUSE'], nw: ['ARINC'] },
+            'TR': { term: 'T1', dcs: ['Navitaire', 'SQIVA'], nw: ['SITA'] },
+            'TW': { term: 'T1', dcs: ['IBS', 'IPORT'], nw: ['SITA'] },
+            'UA': { term: 'T1', dcs: ['Q-Logic'], nw: ['SITA'] },
+            'UL': { term: 'T1', dcs: ['Amadeus'], nw: ['ARINC'] },
+            'UO': { term: 'T1', dcs: ['Navitaire'], nw: ['ARINC'] },
+            'VJ': { term: 'T1', dcs: ['IPORT'], nw: ['ARINC'] },
+            'VN': { term: 'T1', dcs: ['Amadeus'], nw: ['SITA'] },
+            'VS': { term: 'T2', dcs: ['IN-HOUSE'], nw: ['SITA'] },
+            'VZ': { term: 'T1', dcs: ['IPORT'], nw: ['ARINC'] },
+            'WE': { term: 'T1', dcs: ['IBS'], nw: ['전용망'] },
+            'WS': { term: 'T1', dcs: ['SABRE'], nw: ['SITA'] },
+            'XJ': { term: 'T1', dcs: ['Navitaire'], nw: ['ARINC'] },
+            'YP': { term: 'T1', dcs: ['Navitaire'], nw: ['SITA'] },
+            'Z2': { term: 'T1', dcs: ['Navitaire'], nw: ['ARINC'] },
+            'ZA': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'ZE': { term: 'T1', dcs: ['Navitaire'], nw: ['전용망'] },
+            'ZG': { term: 'T1', dcs: ['Sabre'], nw: ['ARINC'] },
+            'ZH': { term: 'T1', dcs: ['TravelSky'], nw: ['ARINC'] },
+            'AS': { term: 'T1', dcs: ['Sabre'], nw: ['ARINC'] },
+            'SL': { term: 'T1', dcs: ['Sabre'], nw: ['ARINC'] }
+            // 미정/미취항(Q2, IJ, LY, SZ) 등 터미널이 명확하지 않은 항공사는 T1/T2 뷰에서 꼬일 수 있어 제외했습니다.
         };
 
         const Page = { 
@@ -145,7 +206,6 @@
                     {onBack && <button onClick={onBack} className="text-indigo-400 text-3xl mr-3 leading-none pb-1 shrink-0">&#8592;</button>}
                     <h1 className="text-xl font-bold text-white truncate flex-1">{title}</h1>
                 </div>
-                {/* 우측 아이콘 2개 나란히 배치 */}
                 <div className="flex shrink-0 ml-2 items-center">
                     {onRefresh && (
                         <button onClick={onRefresh} className="text-emerald-400 p-2 mr-1 hover:bg-slate-700 rounded-full transition flex items-center justify-center">
@@ -275,7 +335,10 @@
             
             const [airlinesData, setAirlinesData] = useState(() => {
                 const saved = localStorage.getItem('airlineData');
-                return saved ? JSON.parse(saved) : DEFAULT_AIRLINE_INFO;
+                // 기존 사용자 캐시 초기화를 위해 우선 DEFAULT를 강제 적용 (또는 직접 초기화 클릭 안내)
+                // 만약 사용자가 직접 설정한 내역을 유지하려면 아래 주석 해제
+                // return saved ? JSON.parse(saved) : DEFAULT_AIRLINE_INFO;
+                return DEFAULT_AIRLINE_INFO; 
             });
 
             const [airlineStatuses, setAirlineStatuses] = useState(() => {
@@ -693,6 +756,14 @@
                         setRecentStatuses([]);
                     }
                 };
+                
+                // 설정 창에서 버튼을 누르면 기본값으로 전체 덮어씌움
+                const handleResetToDefault = () => {
+                    if(confirm("모든 항공사 데이터를 2026.10.02 최신 기준 데이터로 덮어씌우시겠습니까?")) {
+                        setAirlinesData(DEFAULT_AIRLINE_INFO);
+                        alert("최신 데이터로 초기화 되었습니다.");
+                    }
+                };
 
                 return (
                     <div className="flex flex-col h-full bg-slate-900">
@@ -709,6 +780,10 @@
                                     데이터 초기화 관리
                                 </h3>
                                 <div className="space-y-3">
+                                    <button onClick={handleResetToDefault} className="w-full bg-slate-900 border border-emerald-900/50 hover:bg-emerald-900/30 text-emerald-400 py-3 rounded font-bold text-[13px] transition mb-4">
+                                        기본 항공사 목록 최신화 (26년 10월 기준) 적용
+                                    </button>
+                                    
                                     <button onClick={handleClearAirlineStatuses} className="w-full bg-slate-900 border border-rose-900/50 hover:bg-rose-900/30 text-rose-300 py-3 rounded font-bold text-[13px] transition">
                                         현재 입력된 [항공사별 장애 상태] 모두 비우기
                                     </button>
