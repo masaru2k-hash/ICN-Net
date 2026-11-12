@@ -1,5 +1,22 @@
 <!doctype html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#eaf5ff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="ICN Monitor"><link rel="manifest" href="/manifest.json"><title>ICN 공항 장애/현황 모니터링</title><script src="https://cdn.tailwindcss.com"></script><script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script><script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script><style>
 :root{color-scheme:light;--ink:#19354f;--blue:#326bdc;--line:#dbe8f3}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;background:linear-gradient(135deg,#eaf7ff,#f7fbff 55%,#edf5ff);color:var(--ink)}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.48}.glass{background:rgba(255,255,255,.86);border:1px solid rgba(207,226,243,.94);box-shadow:0 12px 32px rgba(45,91,139,.07);border-radius:20px}.field{border:1px solid #c9dceb;background:white;border-radius:12px;padding:11px;width:100%;outline-color:#4b84e9}.btn{border-radius:12px;padding:11px 16px;font-weight:750;background:#edf4ff;color:#2d5caa;border:1px solid #d9e7fb}.primary{background:#396cdb;color:white;border-color:#396cdb}.pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:750}.selected{background:#416de0!important;color:white!important;border-color:#416de0!important}.card-list{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.air-btn{min-height:45px;border-radius:11px;border:1px solid #d6e3f2;background:#f3f7fc;color:#71869d;font-weight:800}.stat{border-left:4px solid #20ad8a;background:white;border-radius:13px;padding:14px;border-top:1px solid #e2ebf3;border-right:1px solid #e2ebf3;border-bottom:1px solid #e2ebf3}.stat.wait{border-left-color:#f5a524}.stat.off{border-left-color:#9cabbc}.desktop-grid{display:grid;grid-template-columns:minmax(220px,270px) minmax(260px,360px) minmax(390px,1fr);gap:18px;align-items:start}.shell{max-width:1550px;margin:auto;padding:18px}.mobile-only{display:none}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.scroll-panel{max-height:calc(100dvh - 205px);overflow:auto}.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:12px}.hint{color:#6e879e;font-size:13px}.section-title{font-size:16px;font-weight:800;margin:0 0 13px}.subtle{background:#f1f7fd;border:1px solid #dfebf6;border-radius:13px}.notice{background:#fff7e9;color:#895d17;padding:12px;border-radius:12px;font-size:13px}.report{width:900px;background:white;color:#19354f;padding:35px;font-family:Arial,'Noto Sans KR',sans-serif}.report-row{display:flex;justify-content:space-between;gap:15px;padding:12px;border-bottom:1px solid #e2eaf3}.report-row span{white-space:nowrap}.report-group{margin-top:25px}.report-group h3{border-bottom:2px solid #cfe0ee;padding-bottom:9px}.report-badge{background:#eaf3fc;padding:5px 9px;border-radius:7px}.mobile-back{display:none}
+.flight-open{border:0;background:transparent;text-align:left;color:inherit;width:100%;cursor:pointer;padding:0}
+.flight-open:focus-visible,.btn:focus-visible{outline:3px solid #4784e8;outline-offset:3px}
+.flight-modal-overlay{position:fixed;inset:0;z-index:80;background:rgba(15,35,57,.64);display:flex;align-items:center;justify-content:center;padding:14px}
+.flight-modal{width:min(980px,100%);height:auto;max-height:calc(100dvh - 28px);display:flex;flex-direction:column;overflow:hidden;background:#f7fbff;border-radius:20px;border:1px solid #dce8f5;box-shadow:0 25px 80px #0f233e5e}
+.flight-modal-head{flex-shrink:0;background:white;border-bottom:1px solid #dce7f4;padding:19px 22px}
+.flight-modal-body{overflow:auto;overscroll-behavior:contain;padding:16px 20px 26px}
+.flight-table{width:100%;border-collapse:collapse;min-width:680px;background:white}
+.flight-table th{background:#eaf3fc;color:#3b5978;text-align:left;font-size:12px;padding:10px 11px;white-space:nowrap}
+.flight-table td{padding:11px;border-top:1px solid #e9f0f8;font-size:13px;vertical-align:middle}
+.flight-table tr:hover td{background:#f6faff}
+.flight-mobile-card{display:none}
+.status-chip{border-radius:8px;padding:4px 9px;display:inline-flex;gap:4px;align-items:center;font-size:12px;font-weight:800;white-space:nowrap}
+.status-chip.s-departed{background:#e9eef5;color:#586a82}.status-chip.s-boarding{background:#dff4ee;color:#08745b}.status-chip.s-delayed{background:#fff0d8;color:#9a5c0b}.status-chip.s-canceled{background:#ffe6e9;color:#ab3148}.status-chip.s-closedboarding{background:#e3ebff;color:#3756a1}.status-chip.s-preparing{background:#e8edff;color:#355fc2}.status-chip.s-unknown{background:#eff3f8;color:#60758a}
+.summary-tile{background:#ffffff;border:1px solid #dfebf7;padding:10px 14px;border-radius:12px;min-width:88px}
+.api-alert{margin:8px 0 12px;padding:11px 13px;border-radius:12px;background:#fff3e6;border:1px solid #f1d2a8;color:#885113;font-size:13px}
+@media(max-width:720px){.flight-modal-overlay{padding:0;align-items:stretch}.flight-modal{border-radius:0;max-height:100dvh;height:100dvh}.flight-modal-head{padding:14px 15px}.flight-modal-body{padding:14px 12px 24px}.flight-table-wrap{display:none}.flight-mobile-card{display:block;background:white;border:1px solid #dce8f5;border-radius:13px;padding:13px;margin-bottom:10px}.flight-modal .summary-tile{min-width:65px;flex:1;padding:9px 7px}.flight-modal .summary-tile span{font-size:11px}}
+
 @media(max-width:1050px){.desktop-grid{grid-template-columns:260px 1fr}.results-col{grid-column:1/-1}.scroll-panel{max-height:none}}
 @media(max-width:720px){.shell{padding:12px}.desktop-grid{display:block}.mobile-only{display:block}.mobile-back{display:inline-flex}.mobile-hide{display:none!important}.topbar{padding:4px 0 12px}.topbar h1{font-size:18px!important}.glass{border-radius:17px}.card-list{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.air-btn{min-height:49px}.scroll-panel{max-height:none}.result-grid{grid-template-columns:1fr}.mobile-footer{position:sticky;bottom:0;background:#f5faff;padding:12px 0;z-index:5}.stat{padding:12px}}
 </style></head><body><div id="root"></div><script type="text/babel" data-presets="react">const {useState,useEffect,useMemo,useRef}=React;
@@ -115,48 +132,66 @@
 
         const SESSION_DURATION_MS = 15 * 60 * 60 * 1000;
 
+        // 기존 인천공항 공공데이터 API + 기존 Cloudflare Worker 프록시를 그대로 사용.
+        // 중요: selectdate 등의 조건은 프록시 주소 바깥이 아닌 'url' 값 안에 넣어야 한다.
+        const API_SOURCE_BASE = decodeURIComponent(GATE_API_URL.slice(PROXY_BASE_URL.length));
+        const airportDate = (date) => `${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
+        // 주간 출발 API 공식 규격: D+0~D+6, 날짜 파라미터는 제공되지 않는다.
+        // 한 번만 호출한 뒤 예정 출발일(YYYYMMDD)로 오늘/내일을 구분한다.
+        const buildFlightAPIUrl = () => PROXY_BASE_URL + encodeURIComponent(API_SOURCE_BASE + '&_ts=' + Date.now());
         const parseFlightsFromXML = (xmlText) => {
-            const parser = new DOMParser(); 
-            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-            const items = xmlDoc.getElementsByTagName('item'); 
-            const flights = [];
-            
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i]; 
-                const cs = item.querySelector('codeshare')?.textContent?.trim();
-                if (cs === 'Slave' || cs === 'slave') continue; 
-                
-                const flightId = item.querySelector('flightId')?.textContent ?? '';
-                const iataCode = flightId.length >= 2 ? flightId.substring(0, 2).toUpperCase() : '';
-                
+            const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+            if(doc.querySelector('parsererror')) throw new Error('운항정보 XML 파싱 오류');
+            const read = (node,tag) => node.getElementsByTagName(tag)[0]?.textContent?.trim() || '';
+            const resultCode = read(doc,'resultCode') || read(doc,'returnReasonCode');
+            const message = read(doc,'resultMsg') || read(doc,'returnAuthMsg') || read(doc,'message');
+            if(resultCode && !['00','0000','0','200'].includes(resultCode)) throw new Error(`API 오류 ${resultCode}: ${message||'요청 실패'}`);
+            if (/<(?:!doctype|html)/i.test(xmlText.slice(0,250))) throw new Error('API가 XML 대신 HTML을 반환했습니다. 프록시 설정을 확인하세요.');
+            const nodes=[...doc.getElementsByTagName('item')];
+            if(!nodes.length && !(doc.getElementsByTagName('response').length || doc.getElementsByTagName('OpenAPI_ServiceResponse').length)) throw new Error('API 응답 형식이 예상과 다릅니다.');
+            const flights=[];
+            for(const item of nodes){
+                const flightId=read(item,'flightId').toUpperCase();
+                if(!flightId)continue;
+                const iata=flightId.slice(0,2);
+                const dep=read(item,'scheduleDateTime');
+                if(!/^\d{12}$/.test(dep))continue;
                 flights.push({
-                    flightId: flightId,
-                    iata: iataCode,
-                    airline: item.querySelector('airline')?.textContent ?? '',
-                    airport: item.querySelector('airport')?.textContent ?? item.querySelector('airportCode')?.textContent ?? '',
-                    scheduleDateTime: item.querySelector('scheduleDateTime')?.textContent ?? '', 
-                    estimatedDateTime: item.querySelector('estimatedDateTime')?.textContent ?? '', 
-                    terminalid: item.querySelector('terminalid')?.textContent ?? '',
-                    chkinrange: item.querySelector('chkinrange')?.textContent ?? '',
-                    gatenumber: item.querySelector('gatenumber')?.textContent ?? '' 
+                    flightId, iata, airline:read(item,'airline'), airport:read(item,'airport')||read(item,'airportCode'), airportCode:read(item,'airportCode'),
+                    scheduleDateTime:dep, estimatedDateTime:read(item,'estimatedDateTime'), terminalid:read(item,'terminalid')||read(item,'terminalId'),
+                    chkinrange:read(item,'chkinrange'), gatenumber:read(item,'gatenumber'),
+                    remark:read(item,'remark')||read(item,'flightStatus')||read(item,'status'),
+                    codeshare:read(item,'codeshare'), masterflightid:read(item,'masterflightid'), fid:read(item,'fid')
                 });
             }
-            return flights;
+            const total=parseInt(read(doc,'totalCount')||read(doc,'totalCnt')||'0',10);
+            return {flights,total:Number.isFinite(total)?total:0};
         };
-
         const fetchFlightData = async () => {
-            const f = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-            const t = f(new Date()); 
-            const tm = f(new Date(new Date().setDate(new Date().getDate() + 1)));
-            const ts = new Date().getTime(); 
-            
-            const urls = [
-                `${GATE_API_URL}&selectdate=${t}&from_time=0000&to_time=2359&_ts=${ts}`,
-                `${GATE_API_URL}&selectdate=${tm}&from_time=0000&to_time=2359&_ts=${ts}`
-            ];
-            const xmls = await Promise.all(urls.map(u => fetch(u, { cache: 'no-store' }).then(res => res.text())));
-            const all = xmls.flatMap(x => parseFlightsFromXML(x));
-            return all.sort((a, b) => a.scheduleDateTime.localeCompare(b.scheduleDateTime));
+            const today=new Date();
+            const days=[airportDate(today),airportDate(new Date(today.getFullYear(),today.getMonth(),today.getDate()+1))];
+            const abort=new AbortController();
+            const timeout=setTimeout(()=>abort.abort(),25000);
+            try{
+                const res=await fetch(buildFlightAPIUrl(),{cache:'no-store',signal:abort.signal});
+                if(!res.ok)throw new Error(`HTTP ${res.status} · 기존 프록시 응답 실패`);
+                const text=await res.text();
+                if(!text||text.length<12)throw new Error('운항정보 API 응답이 비어 있습니다.');
+                const parsed=parseFlightsFromXML(text);
+                if(parsed.flights.length===0)throw new Error('주간 운항편 0건. 인증키, API 허가, 프록시 응답을 확인하세요.');
+                const unique=new Map();
+                for(const f of parsed.flights){
+                    const key=[f.fid||f.flightId,f.scheduleDateTime,f.terminalid,f.codeshare].join('|');
+                    unique.set(key,f);
+                }
+                // 주간 응답에서 오늘 및 내일만 사용: 오늘 전체편 + 다음 출발편 계산
+                return [...unique.values()]
+                  .filter(f=>days.some(day=>f.scheduleDateTime.startsWith(day)))
+                  .sort((a,b)=>a.scheduleDateTime.localeCompare(b.scheduleDateTime));
+            }catch(e){
+                if(e.name==='AbortError')throw new Error('API 응답 시간 초과(25초)');
+                throw e;
+            } finally {clearTimeout(timeout)}
         };
 
         const getDepMs = (dtStr) => {
@@ -172,6 +207,24 @@ const STORAGE_KEY='icnAirlineDataV2';
 const safeRead=(key,fallback)=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback}catch{return fallback}};
 const fmt=(d)=>new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(d);
 const timeOf=(s)=>s&&s.length>=12?`${s.slice(8,10)}:${s.slice(10,12)}`:'--:--';
+const flightStatus=(flight)=>{
+ const raw=String(flight?.remark||'').trim();
+ if(/결항|취소|cancel/i.test(raw))return {label:raw,kind:'canceled'};
+ if(/지연|delay/i.test(raw))return {label:raw,kind:'delayed'};
+ if(/탑승중|boarding|탑승 시작/i.test(raw))return {label:raw,kind:'boarding'};
+ if(/탑승\s*마감|boarding\s*closed/i.test(raw))return {label:raw,kind:'closedboarding'};
+ if(/출발|departed|이륙/i.test(raw))return {label:raw,kind:'departed'};
+ if(/탑승준비|마감예정|준비/i.test(raw))return {label:raw,kind:'preparing'};
+ return {label:raw||'상태 미제공',kind:'unknown'};
+};
+const gateText=(num)=>num?(String(num).toUpperCase().startsWith('G')?String(num):'G'+num):'-';
+const estimateDiff=(flight)=>{
+ const a=getDepMs(flight?.scheduleDateTime),b=getDepMs(flight?.estimatedDateTime);
+ if(!a||!b||a===b)return '';
+ const m=Math.round((b-a)/60000);
+ return (m>0?`예정 대비 +${m}분`: `예정 대비 ${m}분`);
+};
+const localDayTitle=(date)=>`${date.getFullYear()}. ${String(date.getMonth()+1).padStart(2,'0')}. ${String(date.getDate()).padStart(2,'0')}`;
 const escapeHTML=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function useInstall(){
  const [event,setEvent]=useState(null),[installed,setInstalled]=useState(false),[outcome,setOutcome]=useState('');
@@ -180,43 +233,131 @@ function useInstall(){
  return {canPrompt:!!event,installed,install,outcome};
 }
 function getInstallHelp(){const ua=navigator.userAgent;const ios=/iPhone|iPad|iPod/i.test(ua);const samsung=/SamsungBrowser/i.test(ua);const inapp=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);if(inapp)return '앱 내부 브라우저에서는 설치가 제한될 수 있습니다. 메뉴에서 Chrome 또는 Safari 등 외부 브라우저로 열어주세요.';if(ios)return 'Safari에서 공유(□↑) → 홈 화면에 추가 → 추가를 선택하세요. iOS 버전에 따라 메뉴 명칭이 다를 수 있습니다.';if(samsung)return '삼성 인터넷 메뉴(≡)에서 현재 페이지 추가 / 홈 화면 추가 또는 앱 설치 항목을 확인하세요.';return '브라우저 주소창의 설치 아이콘 또는 메뉴(⋮) → 앱 설치 / 홈 화면에 추가를 선택하세요. 메뉴가 없다면 브라우저 설치 조건을 확인하세요.'}
-function makeResults(codes,flights,data,now){return codes.map(iata=>{const info=data[iata];if(!info)return {iata,state:'NO_FLIGHT'};const all=flights.filter(f=>f.iata===iata&&(info.term==='T1'?['P01','P02'].includes(f.terminalid):f.terminalid==='P03'));if(!all.length)return {iata,state:'NO_FLIGHT'};const upcoming=all.filter(f=>getDepMs(f.estimatedDateTime?.length>=12?f.estimatedDateTime:f.scheduleDateTime)>=now.getTime()).sort((a,b)=>getDepMs(a.estimatedDateTime?.length>=12?a.estimatedDateTime:a.scheduleDateTime)-getDepMs(b.estimatedDateTime?.length>=12?b.estimatedDateTime:b.scheduleDateTime));if(!upcoming.length)return {iata,state:'CLOSED'};const flight=upcoming[0];const departure=getDepMs(flight.estimatedDateTime?.length>=12?flight.estimatedDateTime:flight.scheduleDateTime);const diff=(departure-now.getTime())/60000;if(diff>1200)return {iata,state:'CLOSED'};const state=diff<=180?'CHECK_IN':'NOT_OPEN';return {iata,state,flight,counter:flight.chkinrange||(state==='CHECK_IN'?'확인요망':'미배정'),gate:flight.gatenumber,openTime:''};}).map(r=>{if(r.state==='NOT_OPEN'){const f=r.flight;const dep=getDepMs(f.estimatedDateTime?.length>=12?f.estimatedDateTime:f.scheduleDateTime);const d=new Date(dep-180*60000);r.openTime=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}return r})}
+// P01/P02: T1, P03: T2. Use flight-specific terminal for the combined view.
+const flightTerminal=(f,fallback)=>['P01','P02'].includes(f?.terminalid)?'T1':f?.terminalid==='P03'?'T2':(fallback||'미확인');
+const terminalName=(value)=>value==='ALL'?'통합 (T1+T2)':value;
+function makeResults(codes,flights,data,now,viewTerm){
+ return codes.map(iata=>{
+  const info=data[iata];
+  if(!info)return {iata,terminal:'미확인',state:'NO_FLIGHT'};
+  const terminalIds=viewTerm==='ALL'?['P01','P02','P03']:(viewTerm==='T1'?['P01','P02']:['P03']);
+  const all=flights.filter(f=>f.iata===iata&&terminalIds.includes(f.terminalid)&&!['slave','sl'].includes(f.codeshare.toLowerCase()));
+  const defaultTerminal=info.term||'미확인';
+  if(!all.length)return {iata,terminal:defaultTerminal,state:'NO_FLIGHT'};
+  const upcoming=all.filter(f=>!['departed','canceled'].includes(flightStatus(f).kind)&&getDepMs(f.estimatedDateTime?.length>=12?f.estimatedDateTime:f.scheduleDateTime)>=now.getTime())
+     .sort((a,b)=>getDepMs(a.estimatedDateTime?.length>=12?a.estimatedDateTime:a.scheduleDateTime)-getDepMs(b.estimatedDateTime?.length>=12?b.estimatedDateTime:b.scheduleDateTime));
+  if(!upcoming.length)return {iata,terminal:flightTerminal(all[0],defaultTerminal),state:'CLOSED'};
+  const flight=upcoming[0];
+  const departure=getDepMs(flight.estimatedDateTime?.length>=12?flight.estimatedDateTime:flight.scheduleDateTime);
+  const diff=(departure-now.getTime())/60000;
+  const terminal=flightTerminal(flight,defaultTerminal);
+  if(diff>1200)return {iata,terminal,state:'CLOSED'};
+  const state=diff<=180?'CHECK_IN':'NOT_OPEN';
+  const openDate=new Date(departure-180*60000);
+  const openTime=`${String(openDate.getHours()).padStart(2,'0')}:${String(openDate.getMinutes()).padStart(2,'0')}`;
+  return {iata,terminal,state,flight,counter:flight.chkinrange||(state==='CHECK_IN'?'확인요망':'미배정'),gate:flight.gatenumber,openTime:state==='NOT_OPEN'?openTime:''};
+ });
+}
 function App(){
  const [auth,setAuth]=useState(()=>{const s=safeRead('appAuthSession',null);return !!(s&&Date.now()-s.timestamp<SESSION_DURATION_MS)});
  const [pin,setPin]=useState(''),[term,setTerm]=useState('T1'),[mode,setMode]=useState('NW'),[nw,setNw]=useState(''),[dcs,setDcs]=useState('');
  const [data,setData]=useState(()=>safeRead(STORAGE_KEY,DEFAULT_AIRLINE_INFO)),[statuses,setStatuses]=useState(()=>safeRead('airlineStatuses',{})),[recent,setRecent]=useState(()=>safeRead('recentStatuses',[]));
  const [selected,setSelected]=useState(new Set()),[matched,setMatched]=useState([]),[filterText,setFilterText]=useState(''),[flights,setFlights]=useState([]),[loading,setLoading]=useState(false),[fetchError,setFetchError]=useState(''),[lastUpdated,setLastUpdated]=useState(null);
- const [mobileStep,setMobileStep]=useState(0),[settings,setSettings]=useState(false),[installPanel,setInstallPanel]=useState(false),[showClosed,setShowClosed]=useState(false),[reportOpen,setReportOpen]=useState(false),[reportBusy,setReportBusy]=useState(false),[now,setNow]=useState(new Date()),[editing,setEditing]=useState(''),[form,setForm]=useState({iata:'',term:'T1',nw:'',dcs:''});
+ const [detailsIata,setDetailsIata]=useState(null),[mobileStep,setMobileStep]=useState(0),[settings,setSettings]=useState(false),[installPanel,setInstallPanel]=useState(false),[showClosed,setShowClosed]=useState(false),[reportOpen,setReportOpen]=useState(false),[reportBusy,setReportBusy]=useState(false),[now,setNow]=useState(new Date()),[editing,setEditing]=useState(''),[form,setForm]=useState({iata:'',term:'T1',nw:'',dcs:''});
  const installer=useInstall();const requestId=useRef(0);
  useEffect(()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))},[data]);useEffect(()=>{localStorage.setItem('airlineStatuses',JSON.stringify(statuses))},[statuses]);useEffect(()=>{localStorage.setItem('recentStatuses',JSON.stringify(recent))},[recent]);
  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),60000);return()=>clearInterval(t)},[]);
  useEffect(()=>{const check=()=>{const s=safeRead('appAuthSession',null);if(auth&&(!s||Date.now()-s.timestamp>=SESSION_DURATION_MS)){setAuth(false);setMobileStep(0)}};window.addEventListener('focus',check);document.addEventListener('visibilitychange',check);return()=>{window.removeEventListener('focus',check);document.removeEventListener('visibilitychange',check)}},[auth]);
- const loadFlights=async()=>{const id=++requestId.current;setLoading(true);setFetchError('');try{const result=await fetchFlightData();if(id===requestId.current){setFlights(result);setLastUpdated(new Date())}}catch(e){if(id===requestId.current)setFetchError('운항정보 조회 실패: 네트워크 또는 API 응답을 확인하세요.')}finally{if(id===requestId.current)setLoading(false)}};
+ const loadFlights=async()=>{const id=++requestId.current;setLoading(true);setFetchError('');try{const result=await fetchFlightData();if(id===requestId.current){setFlights(result);setLastUpdated(new Date())}}catch(e){if(id===requestId.current)setFetchError('운항정보 조회 실패: '+(e?.message||'프록시 및 API 연결을 확인하세요.'))}finally{if(id===requestId.current)setLoading(false)}};
  useEffect(()=>{if(auth)loadFlights()},[auth]);
- const termCodes=useMemo(()=>Object.keys(data).filter(k=>data[k].term===term).sort(),[data,term]);
+ const termCodes=useMemo(()=>Object.keys(data).filter(k=>term==='ALL'||data[k].term===term).sort(),[data,term]);
  const nwOptions=useMemo(()=>[...new Set(termCodes.flatMap(k=>data[k].nw.map(x=>x.toUpperCase())))].sort(),[termCodes,data]);
  const dcsOptions=useMemo(()=>[...new Set(termCodes.flatMap(k=>data[k].dcs.map(x=>x.toUpperCase())))].sort(),[termCodes,data]);
  useEffect(()=>{setNw('');setDcs('');setSelected(new Set());setMatched([]);setMobileStep(0)},[term]);
  const applyFilter=(nextMode=mode,nextNw=nw,nextDcs=dcs)=>{if(nextMode==='NW'&&!nextNw||nextMode==='DCS'&&!nextDcs||nextMode==='BOTH'&&(!nextNw||!nextDcs))return;const codes=termCodes.filter(k=>{const a=data[k];return(nextMode==='DCS'||a.nw.some(x=>x.toUpperCase()===nextNw))&&(nextMode==='NW'||a.dcs.some(x=>x.toUpperCase()===nextDcs))});setSelected(new Set(codes));setMatched([]);setFilterText(nextMode==='NW'?nextNw:nextMode==='DCS'?nextDcs:`${nextNw} + ${nextDcs}`);setMobileStep(1)};
  const toggle=(code)=>setSelected(prev=>{const n=new Set(prev);n.has(code)?n.delete(code):n.add(code);return n});
  const runQuery=()=>{setMatched([...selected].sort());setMobileStep(2);if(!flights.length)loadFlights()};
- const results=useMemo(()=>makeResults(matched,flights,data,now),[matched,flights,data,now]);
- const groups=[{id:'CHECK_IN',name:'수속 진행중 (체크인)',color:'#0e997b'},{id:'NOT_OPEN',name:'오픈 대기중',color:'#bb7b15'},{id:'CLOSED',name:'마감 / 종료',color:'#8292a6'},{id:'NO_FLIGHT',name:'조회 운항 없음',color:'#8292a6'}];
+ const results=useMemo(()=>makeResults(matched,flights,data,now,term),[matched,flights,data,now,term]);
+ const todayFlightsForAirline=useMemo(()=>{
+    if(!detailsIata)return [];
+    const day=airportDate(now);
+    return flights.filter(f=>f.iata===detailsIata && f.scheduleDateTime.startsWith(day) && ['P01','P02','P03'].includes(f.terminalid))
+      .sort((a,b)=>a.scheduleDateTime.localeCompare(b.scheduleDateTime));
+ },[detailsIata,flights,now]);
+ const selectedByTerm=useMemo(()=>({T1:[...selected].filter(k=>data[k]?.term==='T1').length,T2:[...selected].filter(k=>data[k]?.term==='T2').length}),[selected,data]);
+ const matchedByTerm=useMemo(()=>({T1:matched.filter(k=>data[k]?.term==='T1').length,T2:matched.filter(k=>data[k]?.term==='T2').length}),[matched,data]);
+ const groups=[{id:'CHECK_IN',name:'체크인 시간대 (추정)',color:'#0e997b'},{id:'NOT_OPEN',name:'오픈 예정 (추정)',color:'#bb7b15'},{id:'CLOSED',name:'체크인 시간대 외',color:'#8292a6'},{id:'NO_FLIGHT',name:'조회 운항 없음',color:'#8292a6'}];
  const statusSave=(iata,text)=>{if(!text.trim())return;const value={text:text.trim(),time:timeOf(`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`)};setStatuses(p=>({...p,[iata]:value}));setRecent(p=>[text.trim(),...p.filter(x=>x!==text.trim())].slice(0,10))};
  const saveForm=()=>{const iata=form.iata.trim().toUpperCase();if(!/^[A-Z0-9]{2,3}$/.test(iata)){alert('항공사 코드를 확인하세요.');return}setData(p=>({...p,[iata]:{term:form.term,nw:form.nw.split(',').map(x=>x.trim()).filter(Boolean),dcs:form.dcs.split(',').map(x=>x.trim()).filter(Boolean)}}));setEditing('')};
  const exportImage=async()=>{setReportBusy(true);try{const node=document.getElementById('export-report');if(!node)throw Error('보고서 영역 없음');const canvas=await window.html2canvas(node,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false,windowWidth:1000});const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('이미지 생성 실패');const filename=`ICN_${term}_${filterText.replace(/[^A-Za-z0-9가-힣]+/g,'_')}_${Date.now()}.png`;const file=new File([blob],filename,{type:'image/png'});if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'ICN 운항 현황'});return}catch(e){if(e.name==='AbortError')return}}const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){alert('이미지 저장 실패: '+e.message)}finally{setReportBusy(false)}};
  const openSettings=()=>{setSettings(true);setInstallPanel(false)};
  const resetAll=()=>{if(confirm('항공사 기본 목록으로 복원하시겠습니까? 사용자 수정 내역이 초기화됩니다.'))setData(DEFAULT_AIRLINE_INFO)};
  if(!auth)return <div className="min-h-screen flex items-center justify-center p-4"><div className="glass p-8 w-full max-w-sm text-center"><div className="text-4xl mb-3">✈️</div><h1 className="text-2xl font-black mb-2">ICN Ops Monitor</h1><p className="hint mb-6">공항 장애/현황 모니터링</p><form onSubmit={e=>{e.preventDefault();if(pin==='1234'){localStorage.setItem('appAuthSession',JSON.stringify({timestamp:Date.now()}));setAuth(true)}else{alert('접근 코드가 일치하지 않습니다.');setPin('')}}}><input className="field text-center text-xl tracking-widest mb-3" type="password" value={pin} onChange={e=>setPin(e.target.value)} placeholder="접근 코드"/><button className="btn primary w-full" type="submit">접속</button></form><p className="hint mt-4">실서비스에서는 서버 인증으로 교체해야 합니다.</p></div></div>;
- const FilterPanel=<section className="glass p-4 mb-4"><h2 className="section-title">① 조회 조건</h2><p className="hint mb-3">장애 발생 터미널과 조회 기준을 선택하세요.</p><div className="flex gap-2 mb-4">{['T1','T2'].map(t=><button key={t} className={'btn flex-1 '+(term===t?'selected':'')} onClick={()=>setTerm(t)}>{t} 터미널</button>)}</div><div className="flex gap-2 mb-4">{[['NW','네트워크'],['DCS','DCS'],['BOTH','교집합']].map(([k,v])=><button key={k} className={'btn flex-1 text-sm '+(mode===k?'selected':'')} onClick={()=>{setMode(k);setMatched([])}}>{v}</button>)}</div>{mode!=='DCS'&&<label className="block mb-3 text-sm font-bold">네트워크망<select className="field mt-1" value={nw} onChange={e=>setNw(e.target.value)}><option value="">망 선택</option>{nwOptions.map(v=><option key={v}>{v}</option>)}</select></label>}{mode!=='NW'&&<label className="block mb-3 text-sm font-bold">DCS<select className="field mt-1" value={dcs} onChange={e=>setDcs(e.target.value)}><option value="">DCS 선택</option>{dcsOptions.map(v=><option key={v}>{v}</option>)}</select></label>}<button className="btn primary w-full" disabled={mode==='NW'&&!nw||mode==='DCS'&&!dcs||mode==='BOTH'&&(!nw||!dcs)} onClick={()=>applyFilter()}>조건에 맞는 항공사 목록 보기 →</button></section>;
- const AirlinePanel=<section className="glass p-4 mb-4"><div className="flex items-center justify-between gap-2"><h2 className="section-title">② 항공사 예외 선택</h2><span className="pill bg-blue-50 text-blue-700">{selected.size}개 선택</span></div><div className="notice mb-3">조건에 해당하는 항공사를 자동 선택합니다. 예외 항공사는 직접 선택 해제하거나 추가한 뒤 조회하세요.</div><div className="subtle p-3 mb-3 text-sm"><b>{term} · {filterText||'조회 조건을 먼저 선택하세요'}</b><div className="hint mt-1">선택된 항공사만 운항 현황을 조회합니다.</div></div><div className="flex gap-2 mb-3"><button className="btn text-xs flex-1" onClick={()=>setSelected(new Set(termCodes))}>전체 선택</button><button className="btn text-xs flex-1" onClick={()=>setSelected(new Set())}>전체 해제</button><button className="btn text-xs flex-1" onClick={()=>applyFilter()}>조건 복원</button></div><div className="card-list mb-4">{termCodes.map(k=><button key={k} className={'air-btn '+(selected.has(k)?'selected':'')} onClick={()=>toggle(k)} aria-pressed={selected.has(k)}>{k}</button>)}</div><div className="mobile-footer"><button className="btn primary w-full" disabled={!selected.size} onClick={runQuery}>선택 항공사 조회 ({selected.size}개) →</button></div></section>;
+ const FilterPanel=<section className="glass p-4 mb-4"><h2 className="section-title">① 조회 조건</h2><p className="hint mb-3">조회할 터미널과 NW/DCS 조건을 선택하세요.</p><div className="grid grid-cols-3 gap-2 mb-3">{[['T1','T1'],['T2','T2'],['ALL','통합']].map(([value,label])=><button key={value} type="button" className={'btn px-1 text-sm '+(term===value?'selected':'')} onClick={()=>setTerm(value)} aria-pressed={term===value}>{label}{value==='ALL'&&<span className="block text-[10px] font-normal opacity-80">T1 + T2</span>}</button>)}</div><p className="hint mb-4">{term==='ALL'?'통합: T1·T2 항공사를 모두 포함해 조건별로 검색합니다.':'현재 '+term+' 소속 항공사만 검색합니다.'}</p><div className="flex gap-2 mb-4">{[['NW','네트워크'],['DCS','DCS'],['BOTH','교집합']].map(([k,v])=><button key={k} className={'btn flex-1 text-sm '+(mode===k?'selected':'')} onClick={()=>{setMode(k);setMatched([])}}>{v}</button>)}</div>{mode!=='DCS'&&<label className="block mb-3 text-sm font-bold">네트워크망<select className="field mt-1" value={nw} onChange={e=>setNw(e.target.value)}><option value="">망 선택</option>{nwOptions.map(v=><option key={v}>{v}</option>)}</select></label>}{mode!=='NW'&&<label className="block mb-3 text-sm font-bold">DCS<select className="field mt-1" value={dcs} onChange={e=>setDcs(e.target.value)}><option value="">DCS 선택</option>{dcsOptions.map(v=><option key={v}>{v}</option>)}</select></label>}<button className="btn primary w-full" disabled={mode==='NW'&&!nw||mode==='DCS'&&!dcs||mode==='BOTH'&&(!nw||!dcs)} onClick={()=>applyFilter()}>조건에 맞는 항공사 목록 보기 →</button></section>;
+ const AirlinePanel=<section className="glass p-4 mb-4"><div className="flex items-center justify-between gap-2"><h2 className="section-title">② 항공사 예외 선택</h2><span className="pill bg-blue-50 text-blue-700">{selected.size}개 선택</span></div><div className="notice mb-3">조건에 해당하는 항공사를 자동 선택합니다. 예외 항공사는 직접 선택 해제하거나 추가한 뒤 조회하세요.</div><div className="subtle p-3 mb-3 text-sm"><b>{terminalName(term)} · {filterText||'조회 조건을 먼저 선택하세요'}</b><div className="hint mt-1">선택된 항공사만 운항 현황을 조회합니다.{term==='ALL'&&` (현재 선택 T1 ${selectedByTerm.T1}개 · T2 ${selectedByTerm.T2}개)`}</div></div><div className="flex gap-2 mb-3"><button className="btn text-xs flex-1" onClick={()=>setSelected(new Set(termCodes))}>전체 선택</button><button className="btn text-xs flex-1" onClick={()=>setSelected(new Set())}>전체 해제</button><button className="btn text-xs flex-1" onClick={()=>applyFilter()}>조건 복원</button></div><div className="card-list mb-4">{termCodes.map(k=><button key={k} className={'air-btn '+(selected.has(k)?'selected':'')} onClick={()=>toggle(k)} aria-pressed={selected.has(k)}><span className="block">{k}</span>{term==='ALL'&&<span className="block text-[10px] leading-3 font-semibold opacity-80">{data[k]?.term||'미확인'}</span>}</button>)}</div><div className="mobile-footer"><button className="btn primary w-full" disabled={!selected.size} onClick={runQuery}>선택 항공사 조회 ({selected.size}개) →</button></div></section>;
 
- const renderCard=(r)=>{const st=statuses[r.iata];return <FlightCard key={r.iata} r={r} status={st} recent={recent} onSave={statusSave}/>};
- const ResultPanel=<section className="glass p-4 mb-4 results-col"><div className="flex justify-between items-start gap-3 flex-wrap"><div><h2 className="section-title mb-1">③ 운항 현황 <span className="text-blue-600">({matched.length}개사)</span></h2><p className="hint">{term} · {filterText} · {fmt(now)} 기준</p><p className="hint">API 마지막 갱신: {lastUpdated?fmt(lastUpdated):'없음'}</p></div><div className="flex gap-2"><button className="btn text-sm" onClick={loadFlights} disabled={loading}>{loading?'갱신 중':'↻ 새로고침'}</button><button className="btn primary text-sm" disabled={!matched.length||loading||!!fetchError} onClick={()=>setReportOpen(true)}>▣ 이미지 내보내기</button></div></div>{fetchError&&<div className="notice my-3">{fetchError} 기존 데이터가 남아 있다면 이전 조회 결과일 수 있습니다.</div>}{loading&&<div className="hint py-3">운항정보를 갱신하고 있습니다…</div>}{!matched.length?<div className="subtle p-8 text-center hint mt-4">항공사를 선택하고 조회 버튼을 누르면 결과가 표시됩니다.</div>:<div className="mt-4">{groups.map(g=>{const list=results.filter(r=>r.state===g.id);if(!list.length)return null;if(['CLOSED','NO_FLIGHT'].includes(g.id)&&!showClosed)return null;return <div key={g.id} className="mb-6"><div className="flex justify-between items-center border-b pb-2 mb-3"><h3 className="font-black" style={{color:g.color}}>{g.name}</h3><b>{list.length}</b></div><div className="result-grid">{list.map(renderCard)}</div></div>})}<button className="btn w-full" onClick={()=>setShowClosed(!showClosed)}>{showClosed?'마감/운항 없음 접기':'마감/운항 없음 보기'} ({results.filter(r=>['CLOSED','NO_FLIGHT'].includes(r.state)).length})</button></div>}</section>;
+ const renderCard=(r)=>{const st=statuses[r.iata];return <FlightCard key={r.iata} r={r} status={st} recent={recent} onSave={statusSave} onOpen={()=>setDetailsIata(r.iata)}/>};
+ const ResultPanel=<section className="glass p-4 mb-4 results-col"><div className="flex justify-between items-start gap-3 flex-wrap"><div><h2 className="section-title mb-1">③ 운항 현황 <span className="text-blue-600">({matched.length}개사)</span></h2><p className="hint">{terminalName(term)} · {filterText} · {fmt(now)} 기준</p>{term==='ALL'&&<p className="text-xs font-bold text-blue-700">대상 항공사: T1 {matchedByTerm.T1}개 · T2 {matchedByTerm.T2}개</p>}<p className="hint">API 마지막 갱신: {lastUpdated?fmt(lastUpdated):'없음'}</p><p className="hint" style={{marginTop:4}}>카드를 누르면 해당 항공사의 오늘 출발편 전체와 실제 API 운항 상태를 볼 수 있습니다.</p></div><div className="flex gap-2"><button className="btn text-sm" onClick={loadFlights} disabled={loading}>{loading?'갱신 중':'↻ 새로고침'}</button><button className="btn primary text-sm" disabled={!matched.length||loading||!!fetchError} onClick={()=>setReportOpen(true)}>▣ 이미지 내보내기</button></div></div>{fetchError&&<div className="notice my-3">{fetchError} 기존 데이터가 남아 있다면 이전 조회 결과일 수 있습니다.</div>}{loading&&<div className="hint py-3">운항정보를 갱신하고 있습니다…</div>}{!matched.length?<div className="subtle p-8 text-center hint mt-4">항공사를 선택하고 조회 버튼을 누르면 결과가 표시됩니다.</div>:(!lastUpdated&&!loading)?<div className="api-alert mt-4">{fetchError?'API 연결을 확인한 뒤 새로고침 해주세요.':'아직 운항 데이터를 받지 못했습니다. 새로고침 버튼으로 조회해 주세요.'} 데이터가 없는 상태를 운항 없음으로 표시하지 않습니다.</div>:<div className="mt-4">{groups.map(g=>{const list=results.filter(r=>r.state===g.id);if(!list.length)return null;if(['CLOSED','NO_FLIGHT'].includes(g.id)&&!showClosed)return null;return <div key={g.id} className="mb-6"><div className="flex justify-between items-center border-b pb-2 mb-3"><h3 className="font-black" style={{color:g.color}}>{g.name}</h3><b>{list.length}</b></div><div className="result-grid">{list.map(renderCard)}</div></div>})}<button className="btn w-full" onClick={()=>setShowClosed(!showClosed)}>{showClosed?'마감/운항 없음 접기':'마감/운항 없음 보기'} ({results.filter(r=>['CLOSED','NO_FLIGHT'].includes(r.state)).length})</button></div>}</section>;
  const SettingsPanel=<section className="glass p-5"><div className="flex justify-between items-center mb-4"><h2 className="text-xl font-black">데이터 설정 및 관리</h2><button className="btn" onClick={()=>setSettings(false)}>닫기</button></div><div className="subtle p-4 mb-4"><h3 className="section-title">앱 설치 및 실행</h3><p className="hint mb-3">{installer.installed?'설치형 앱으로 실행 중입니다.':installer.canPrompt?'이 브라우저에서 설치창을 열 수 있습니다.':'브라우저별 설치 안내를 확인하세요.'}</p>{installer.canPrompt&&!installer.installed&&<button className="btn primary mr-2" onClick={installer.install}>앱 설치</button>}<button className="btn" onClick={()=>setInstallPanel(!installPanel)}>설치 방법 {installPanel?'접기':'보기'}</button>{installPanel&&<div className="notice mt-3">{getInstallHelp()}</div>}{installer.outcome&&<p className="hint mt-2">{installer.outcome}</p>}</div><div className="subtle p-4 mb-5"><h3 className="section-title">데이터 초기화</h3><div className="flex gap-2 flex-wrap"><button className="btn" onClick={resetAll}>기본 항공사 목록 복원</button><button className="btn" onClick={()=>{if(confirm('모든 항공사 장애 상태를 삭제할까요?'))setStatuses({})}}>장애 상태 비우기</button><button className="btn" onClick={()=>{if(confirm('자동완성 기록을 삭제할까요?'))setRecent([])}}>자동완성 비우기</button></div></div><div className="flex justify-between items-center mb-3"><h3 className="section-title">항공사 NW / DCS 정보</h3><button className="btn primary text-sm" onClick={()=>{setEditing('NEW');setForm({iata:'',term:'T1',nw:'',dcs:''})}}>신규 추가</button></div>{editing&&<div className="subtle p-4 mb-4"><div className="grid grid-cols-2 gap-3 mb-3"><label className="text-sm">항공사 코드<input disabled={editing!=='NEW'} className="field mt-1" value={form.iata} onChange={e=>setForm({...form,iata:e.target.value})}/></label><label className="text-sm">터미널<select className="field mt-1" value={form.term} onChange={e=>setForm({...form,term:e.target.value})}><option>T1</option><option>T2</option></select></label></div><label className="block text-sm mb-3">네트워크 (쉼표 구분)<input className="field mt-1" value={form.nw} onChange={e=>setForm({...form,nw:e.target.value})}/></label><label className="block text-sm mb-3">DCS (쉼표 구분)<input className="field mt-1" value={form.dcs} onChange={e=>setForm({...form,dcs:e.target.value})}/></label><div className="flex gap-2"><button className="btn" onClick={()=>setEditing('')}>취소</button><button className="btn primary" onClick={saveForm}>저장</button></div></div>}<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{Object.keys(data).sort().map(k=><button key={k} className="subtle p-3 text-left" onClick={()=>{setEditing(k);setForm({iata:k,term:data[k].term,nw:data[k].nw.join(', '),dcs:data[k].dcs.join(', ')})}}><b className="text-blue-700">{k} <small className="text-slate-500">{data[k].term}</small></b><div className="hint">NW: {data[k].nw.join(', ')}<br/>DCS: {data[k].dcs.join(', ')}</div></button>)}</div></section>;
- const report=<div id="export-report" className="report"><div style={{borderBottom:'4px solid #3670d8',paddingBottom:18}}><div style={{fontSize:13,color:'#64748b'}}>INCHEON AIRPORT · OPERATIONS MONITOR</div><h1 style={{fontSize:30,margin:'7px 0'}}>공항 장애/운항 현황 보고</h1><div style={{fontSize:16}}>{term} | {filterText} | {fmt(now)}</div><div style={{fontSize:13,color:'#60758a',marginTop:7}}>선택 항공사 {matched.length}개 · 데이터 갱신 {lastUpdated?fmt(lastUpdated):'없음'}</div></div><div style={{display:'flex',gap:12,marginTop:18}}>{groups.map(g=><div key={g.id} style={{flex:1,padding:14,background:'#f1f7fd',borderRadius:10}}><div style={{fontSize:12}}>{g.name}</div><b style={{fontSize:25,color:g.color}}>{results.filter(r=>r.state===g.id).length}</b></div>)}</div>{groups.map(g=>{const list=results.filter(r=>r.state===g.id);return list.length?<div className="report-group" key={g.id}><h3 style={{color:g.color}}>{g.name} ({list.length})</h3>{list.map(r=>{const st=statuses[r.iata];return <div className="report-row" key={r.iata}><div style={{minWidth:120}}><b>{r.iata}</b> <span style={{fontSize:12,color:'#687d90'}}>{r.flight?.airline||''}</span></div><div style={{flex:1,fontSize:13}}>{r.flight?`${r.flight.flightId} · ${r.flight.airport} · ${timeOf(r.flight.scheduleDateTime)} 출발`:g.name}{r.state==='NOT_OPEN'&&` · ${r.openTime} 오픈 예정`}{st?.text&&<div style={{color:'#b34858',marginTop:4}}>장애 상태: {st.text} ({st.time||''})</div>}</div><span className="report-badge">{r.gate?'G'+r.gate+' · ':''}{r.counter||'-'}</span></div>})}</div>:null})}<div style={{fontSize:11,color:'#8292a6',marginTop:26,borderTop:'1px solid #dce8f3',paddingTop:10}}>본 자료는 공공 운항정보 기반의 참고용 조회 결과이며, 실제 장애 여부는 현장 확인이 필요합니다.</div></div>;
- return <div className="shell"><header className="topbar"><div><h1 className="text-2xl font-black">✈️ 공항 장애/현황 모니터링</h1><p className="hint">ICN Ops Monitor · Network / DCS Operations</p></div><div className="flex gap-2"><button className="btn" onClick={loadFlights} disabled={loading} title="운항정보 갱신">↻ <span className="mobile-hide">새로고침</span></button><button className="btn" onClick={openSettings}>⚙ <span className="mobile-hide">설정</span></button></div></header>{settings?SettingsPanel:<><div className="mobile-only mb-3"><div className="flex gap-2">{['조건','항공사','결과'].map((x,i)=><button key={x} className={'btn flex-1 text-sm '+(mobileStep===i?'selected':'')} onClick={()=>setMobileStep(i)}>{i+1}. {x}</button>)}</div></div><div className="desktop-grid"><div className={mobileStep===0?'':'mobile-hide'}>{FilterPanel}</div><div className={mobileStep===1?'':'mobile-hide'}>{AirlinePanel}</div><div className={'results-col '+(mobileStep===2?'':'mobile-hide')}>{ResultPanel}</div></div></>}{reportOpen&&<div style={{position:'fixed',inset:0,zIndex:60,background:'rgba(17,40,63,.65)',overflow:'auto',padding:'18px'}}><div className="glass p-4 mx-auto" style={{maxWidth:950}}><div className="flex justify-between items-center gap-2 mb-3"><h2 className="font-black">이미지 보고서 미리보기</h2><div className="flex gap-2"><button className="btn primary" disabled={reportBusy} onClick={exportImage}>{reportBusy?'이미지 생성 중':'PNG 저장 / 공유'}</button><button className="btn" onClick={()=>setReportOpen(false)}>닫기</button></div></div><div style={{overflowX:'auto'}}>{report}</div></div></div>}</div>
+ const report=<div id="export-report" className="report"><div style={{borderBottom:'4px solid #3670d8',paddingBottom:18}}><div style={{fontSize:13,color:'#64748b'}}>INCHEON AIRPORT · OPERATIONS MONITOR</div><h1 style={{fontSize:30,margin:'7px 0'}}>공항 장애/운항 현황 보고</h1><div style={{fontSize:16}}>{terminalName(term)} | {filterText} | {fmt(now)}</div><div style={{fontSize:13,color:'#60758a',marginTop:7}}>선택 항공사 {matched.length}개{term==='ALL'&&` (T1 ${matchedByTerm.T1}개 · T2 ${matchedByTerm.T2}개)`} · 데이터 갱신 {lastUpdated?fmt(lastUpdated):'없음'}</div></div><div style={{display:'flex',gap:12,marginTop:18}}>{groups.map(g=><div key={g.id} style={{flex:1,padding:14,background:'#f1f7fd',borderRadius:10}}><div style={{fontSize:12}}>{g.name}</div><b style={{fontSize:25,color:g.color}}>{results.filter(r=>r.state===g.id).length}</b></div>)}</div>{groups.map(g=>{const list=results.filter(r=>r.state===g.id);return list.length?<div className="report-group" key={g.id}><h3 style={{color:g.color}}>{g.name} ({list.length})</h3>{list.map(r=>{const st=statuses[r.iata];return <div className="report-row" key={r.iata}><div style={{minWidth:120}}><b>{r.iata}</b> <span style={{display:'inline-block',fontSize:11,fontWeight:700,background:r.terminal==='T2'?'#f0eaff':'#e4f3ff',color:r.terminal==='T2'?'#6947b8':'#276b9c',padding:'2px 6px',borderRadius:5,marginLeft:5}}>{r.terminal||'미확인'}</span> <span style={{fontSize:12,color:'#687d90'}}>{r.flight?.airline||''}</span></div><div style={{flex:1,fontSize:13}}>{r.flight?`${r.flight.flightId} · ${r.flight.airport} · ${timeOf(r.flight.scheduleDateTime)} 예정 · ${flightStatus(r.flight).label}`:g.name}{r.state==='NOT_OPEN'&&` · ${r.openTime} 오픈 예정`}{st?.text&&<div style={{color:'#b34858',marginTop:4}}>장애 상태: {st.text} ({st.time||''})</div>}</div><span className="report-badge">{r.gate?'G'+r.gate+' · ':''}{r.counter||'-'}</span></div>})}</div>:null})}<div style={{fontSize:11,color:'#8292a6',marginTop:26,borderTop:'1px solid #dce8f3',paddingTop:10}}>본 자료는 공공 운항정보 기반입니다. 체크인 시간대 구분은 출발 3시간 전 기준 추정치이며 실제 수속 상태·장애 여부는 현장 확인이 필요합니다.</div></div>;
+ return <div className="shell"><header className="topbar"><div><h1 className="text-2xl font-black">✈️ 공항 장애/현황 모니터링</h1><p className="hint">ICN Ops Monitor · Network / DCS Operations</p></div><div className="flex gap-2"><button className="btn" onClick={loadFlights} disabled={loading} title="운항정보 갱신">↻ <span className="mobile-hide">새로고침</span></button><button className="btn" onClick={openSettings}>⚙ <span className="mobile-hide">설정</span></button></div></header>{settings?SettingsPanel:<><div className="mobile-only mb-3"><div className="flex gap-2">{['조건','항공사','결과'].map((x,i)=><button key={x} className={'btn flex-1 text-sm '+(mobileStep===i?'selected':'')} onClick={()=>setMobileStep(i)}>{i+1}. {x}</button>)}</div></div><div className="desktop-grid"><div className={mobileStep===0?'':'mobile-hide'}>{FilterPanel}</div><div className={mobileStep===1?'':'mobile-hide'}>{AirlinePanel}</div><div className={'results-col '+(mobileStep===2?'':'mobile-hide')}>{ResultPanel}</div></div></>}{detailsIata&&<FlightDetailModal
+     iata={detailsIata} flights={todayFlightsForAirline} loading={loading} error={fetchError}
+     lastUpdated={lastUpdated} date={now} onClose={()=>setDetailsIata(null)} onRefresh={loadFlights}
+     storedStatus={statuses[detailsIata]}
+   />}
+{reportOpen&&<div style={{position:'fixed',inset:0,zIndex:60,background:'rgba(17,40,63,.65)',overflow:'auto',padding:'18px'}}><div className="glass p-4 mx-auto" style={{maxWidth:950}}><div className="flex justify-between items-center gap-2 mb-3"><h2 className="font-black">이미지 보고서 미리보기</h2><div className="flex gap-2"><button className="btn primary" disabled={reportBusy} onClick={exportImage}>{reportBusy?'이미지 생성 중':'PNG 저장 / 공유'}</button><button className="btn" onClick={()=>setReportOpen(false)}>닫기</button></div></div><div style={{overflowX:'auto'}}>{report}</div></div></div>}</div>
 }
-function FlightCard({r,status,recent,onSave}){const [expanded,setExpanded]=useState(false),[input,setInput]=useState('');const wait=r.state==='NOT_OPEN';const off=!r.flight;return <article className={'stat '+(wait?'wait':off?'off':'')}><div className="flex justify-between gap-2 items-start"><div><div className="font-black text-xl">{r.iata} <span className="font-normal text-sm text-slate-500">{r.flight?.airline||''}</span></div><div className="text-sm text-slate-600 mt-1">{r.flight?`${r.flight.flightId} | ${r.flight.airport} | ${timeOf(r.flight.scheduleDateTime)} 출발`:(r.state==='CLOSED'?'운항 종료':'조회 운항 없음')}</div></div><div className="text-right shrink-0"><div className="flex gap-1 justify-end">{r.gate&&<span className="pill bg-slate-100 text-slate-600">G{r.gate}</span>}{r.counter&&<span className={'pill '+(wait?'bg-amber-100 text-amber-800':'bg-emerald-100 text-emerald-800')}>{r.counter}</span>}</div>{wait&&<div className="text-xs font-bold text-amber-700 mt-2">{r.openTime} 오픈 예상</div>}</div></div>{status?.text&&<div className="notice mt-3" style={{background:'#fff0f2',color:'#a53b51'}}>상태: {status.text} {status.time&&`(${status.time})`}</div>}<button className="text-xs text-blue-600 font-bold mt-3" onClick={()=>setExpanded(!expanded)}>{expanded?'상태 입력 닫기':'장애 상태 입력 / 수정'}</button>{expanded&&<div className="mt-3 flex flex-col gap-2"><input className="field" placeholder="예: 응답 지연 → 수기 발권" value={input} onChange={e=>setInput(e.target.value)}/>{recent.length>0&&<select className="field" value="" onChange={e=>setInput(e.target.value)}><option value="">기존 입력 불러오기</option>{recent.map(v=><option key={v} value={v}>{v}</option>)}</select>}<button className="btn primary" onClick={()=>{onSave(r.iata,input);setExpanded(false);setInput('')}}>상태 저장</button></div>}</article>}
+function FlightDetailModal({iata,flights,loading,error,lastUpdated,date,onClose,onRefresh,storedStatus}){
+ const [filter,setFilter]=useState('all');
+ useEffect(()=>{const esc=e=>{if(e.key==='Escape')onClose()};window.addEventListener('keydown',esc);const old=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',esc);document.body.style.overflow=old}},[onClose]);
+ const count=(kind)=>flights.filter(f=>flightStatus(f).kind===kind).length;
+ const filters=[{id:'all',label:'전체',number:flights.length},{id:'departed',label:'출발',number:count('departed')},{id:'boarding',label:'탑승중',number:count('boarding')},{id:'delayed',label:'지연',number:count('delayed')},{id:'canceled',label:'결항',number:count('canceled')},{id:'other',label:'기타',number:count('preparing')+count('closedboarding')+count('unknown')}];
+ const visible=flights.filter(f=>filter==='all'||(filter==='other'?['preparing','closedboarding','unknown'].includes(flightStatus(f).kind):flightStatus(f).kind===filter));
+ const airline=flights.find(f=>f.airline)?.airline||'';
+ return <div className="flight-modal-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}} role="presentation">
+   <div className="flight-modal" role="dialog" aria-modal="true" aria-label={`${iata} 오늘 출발편 전체 목록`}>
+     <div className="flight-modal-head">
+       <div className="flex justify-between items-start gap-2">
+         <div><div className="flex items-center gap-2 flex-wrap"><h2 className="font-black text-xl md:text-2xl">{iata} {airline}</h2><span className="pill bg-blue-50 text-blue-700">오늘 출발편 {flights.length}편</span></div>
+           <p className="hint mt-1">{localDayTitle(date)} · 인천공항 출발편 전체(T1+T2) · 항공편의 예정 출발일 기준</p>
+           <p className="hint mt-1">API 조회: {lastUpdated?fmt(lastUpdated):'아직 조회 전'} · 편명과 운항 상태는 원본 API 기준</p>
+         </div>
+         <button className="btn text-sm shrink-0" onClick={onClose} aria-label="닫기">✕ 닫기</button>
+       </div>
+       {storedStatus?.text&&<div className="api-alert" style={{background:'#fff0f2',borderColor:'#f5c9d0',color:'#9d344b'}}>현장 입력 장애 상태: {storedStatus.text} {storedStatus.time&&`(${storedStatus.time})`}</div>}
+       <div className="flex flex-wrap gap-2 mt-4">{filters.map(p=><button key={p.id} className={'btn text-xs px-3 py-2 '+(p.id===filter?'selected':'')} onClick={()=>setFilter(p.id)}>{p.label} {p.number}</button>)}</div>
+     </div>
+     <div className="flight-modal-body">
+       <div className="flex gap-2 items-center justify-between mb-3">
+         <div className="hint">{loading?'운항정보 갱신 중…':`표시 ${visible.length}편 / 전체 ${flights.length}편`}</div>
+         <button className="btn text-xs" disabled={loading} onClick={onRefresh}>↻ API 다시 조회</button>
+       </div>
+       {error&&<div className="api-alert">{error} · 기존 조회 내용이 남아 있다면 최신 정보가 아닐 수 있습니다.</div>}
+       {!flights.length&&!loading&&<div className="subtle p-7 text-center hint">{error?'API 연결 상태를 확인하세요.':'오늘 출발 항공편이 조회되지 않았습니다. 코드쉐어 편명은 별도 표기되며, 원본 API에서 제공하지 않은 편은 표시되지 않습니다.'}</div>}
+       {flights.length>0&&!visible.length&&<div className="subtle p-6 text-center hint">선택한 상태의 운항편이 없습니다.</div>}
+       <div className="flight-table-wrap overflow-auto rounded-xl border border-slate-200">
+         {visible.length>0&&<table className="flight-table"><thead><tr><th>예정</th><th>편명 / 항공사</th><th>목적지</th><th>터미널</th><th>탑승구</th><th>체크인 카운터</th><th>운항 상태 (API)</th><th>변경 시각</th></tr></thead>
+         <tbody>{visible.map((f,i)=><tr key={[f.fid||f.flightId,f.scheduleDateTime,i].join('-')}>
+           <td style={{fontWeight:800,whiteSpace:'nowrap'}}>{timeOf(f.scheduleDateTime)}</td>
+           <td><b>{f.flightId}</b>{['slave','sl'].includes(f.codeshare.toLowerCase())&&<div className="hint">공동운항 / {f.masterflightid||'마스터편명 미제공'}</div>}</td>
+           <td>{f.airport||f.airportCode||'-'}</td>
+           <td><span className="pill bg-sky-100 text-blue-800">{flightTerminal(f,'-')}</span></td>
+           <td>{gateText(f.gatenumber)}</td><td>{f.chkinrange||'-'}</td>
+           <td><span className={'status-chip s-'+flightStatus(f).kind}>{flightStatus(f).label}</span></td>
+           <td>{f.estimatedDateTime&&timeOf(f.estimatedDateTime)!==timeOf(f.scheduleDateTime)?<><b>{timeOf(f.estimatedDateTime)}</b><div className="hint">{estimateDiff(f)}</div></>:'-'}</td>
+         </tr>)}</tbody></table>}
+       </div>
+       <div className="md:hidden">{visible.map((f,i)=><div className="flight-mobile-card" key={[f.fid||f.flightId,f.scheduleDateTime,i].join('-')}>
+         <div className="flex justify-between gap-2 items-start"><div><div className="font-black text-lg">{timeOf(f.scheduleDateTime)} <span className="text-blue-700">{f.flightId}</span></div><div className="text-sm text-slate-600 mt-1">{f.airport||f.airportCode||'-'}</div></div><span className={'status-chip s-'+flightStatus(f).kind}>{flightStatus(f).label}</span></div>
+         <div className="grid grid-cols-3 gap-2 text-xs text-slate-600 mt-3"><div><div className="hint">터미널</div><b>{flightTerminal(f,'-')}</b></div><div><div className="hint">게이트</div><b>{gateText(f.gatenumber)}</b></div><div><div className="hint">체크인 카운터</div><b>{f.chkinrange||'-'}</b></div></div>
+         {f.estimatedDateTime&&timeOf(f.estimatedDateTime)!==timeOf(f.scheduleDateTime)&&<div className="text-sm text-amber-700 font-bold mt-2">변경 {timeOf(f.estimatedDateTime)} ({estimateDiff(f)})</div>}
+         {['slave','sl'].includes(f.codeshare.toLowerCase())&&<div className="hint mt-2">공동운항편 · 마스터 {f.masterflightid||'확인 필요'}</div>}
+       </div>)}</div>
+       <p className="hint mt-4">※ 운항 상태는 공공데이터 API의 현황(remark)을 그대로 표시합니다. 공란이면 '상태 미제공'이며 시간 경과만으로 출발·탑승중으로 추정하지 않습니다. 변경 시각은 예정 시각과 비교한 참고 정보입니다.</p>
+     </div>
+   </div>
+ </div>
+}
+function FlightCard({r,status,recent,onSave,onOpen}){const [expanded,setExpanded]=useState(false),[input,setInput]=useState('');const wait=r.state==='NOT_OPEN';const off=!r.flight;return <article className={'stat '+(wait?'wait':off?'off':'')}><button type="button" className="flight-open" onClick={onOpen} aria-label={`${r.iata} 오늘 전체 출발편 조회`}><div className="flex justify-between gap-2 items-start"><div><div className="font-black text-xl flex items-center flex-wrap gap-1">{r.iata} <span className={'pill text-[10px] '+(r.terminal==='T2'?'bg-violet-100 text-violet-800':'bg-sky-100 text-sky-800')}>{r.terminal||'미확인'}</span><span className="font-normal text-sm text-slate-500">{r.flight?.airline||''}</span></div><div className="text-sm text-slate-600 mt-1">{r.flight?`${r.flight.flightId} | ${r.flight.airport} | ${timeOf(r.flight.scheduleDateTime)} 예정`:(r.state==='CLOSED'?'수속 추정시간 종료':'조회 운항 없음')}</div></div><div className="text-right shrink-0"><div className="flex gap-1 justify-end">{r.gate&&<span className="pill bg-slate-100 text-slate-600">G{r.gate}</span>}{r.counter&&<span className={'pill '+(wait?'bg-amber-100 text-amber-800':'bg-emerald-100 text-emerald-800')}>{r.counter}</span>}</div>{wait&&<div className="text-xs font-bold text-amber-700 mt-2">{r.openTime} 오픈 예상</div>}</div></div><div className="text-xs text-blue-600 font-semibold mt-2">오늘 전체 출발편 · 운항상태 보기 →</div></button>{r.flight&&<div className="mt-2"><span className={"status-chip s-"+flightStatus(r.flight).kind}>{flightStatus(r.flight).label}</span></div>}{status?.text&&<div className="notice mt-3" style={{background:'#fff0f2',color:'#a53b51'}}>상태: {status.text} {status.time&&`(${status.time})`}</div>}<button className="text-xs text-blue-600 font-bold mt-3" onClick={()=>setExpanded(!expanded)}>{expanded?'상태 입력 닫기':'장애 상태 입력 / 수정'}</button>{expanded&&<div className="mt-3 flex flex-col gap-2"><input className="field" placeholder="예: 응답 지연 → 수기 발권" value={input} onChange={e=>setInput(e.target.value)}/>{recent.length>0&&<select className="field" value="" onChange={e=>setInput(e.target.value)}><option value="">기존 입력 불러오기</option>{recent.map(v=><option key={v} value={v}>{v}</option>)}</select>}<button className="btn primary" onClick={()=>{if(!input.trim())return;onSave(r.iata,input);setExpanded(false);setInput('')}}>상태 저장</button></div>}</article>}
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(console.warn))}</script></body></html>
